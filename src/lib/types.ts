@@ -43,6 +43,7 @@ export type Listing = {
   startTime: string;
   endTime: string;
   description: string;
+  sourceUrl: string | null;
 };
 
 export const TYPE_LABELS: Record<ListingType, string> = {

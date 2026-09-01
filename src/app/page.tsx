@@ -7,9 +7,9 @@ export const dynamic = "force-dynamic";
 export default async function Home({
   searchParams,
 }: {
-  searchParams: Promise<{ added?: string }>;
+  searchParams: Promise<{ submitted?: string }>;
 }) {
-  const [{ added }, listings] = await Promise.all([
+  const [{ submitted }, listings] = await Promise.all([
     searchParams,
     getListings(),
   ]);
@@ -26,17 +26,17 @@ export default async function Home({
         </h1>
         <p className="mt-3 max-w-xl text-[var(--muted)]">
           Happy hours, food specials, trivia, bingo, and live music around
-          Norfolk, Virginia Beach, and the rest of Hampton Roads. The listings
-          below include sample data so you can see how the week looks.
+          Norfolk, Virginia Beach, and the rest of Hampton Roads. Community
+          submissions are reviewed before they appear on this calendar.
         </p>
       </div>
 
-      {added === "1" ? (
+      {submitted === "1" ? (
         <p
           className="rounded-2xl border border-[var(--amber)] bg-[var(--wash)] px-4 py-3 text-sm text-[var(--ink)]"
           role="status"
         >
-          Added. Scroll the week to find the days you picked.
+          Submitted for review. It will show up here after it is approved.
         </p>
       ) : null}
 

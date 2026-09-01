@@ -127,12 +127,28 @@ export function AddListingForm() {
         />
       </label>
 
+      <label className="grid gap-1.5">
+        <span className="text-sm font-medium text-[var(--ink)]">
+          Source URL{" "}
+          <span className="font-normal text-[var(--muted)]">(optional)</span>
+        </span>
+        <input
+          type="url"
+          name="sourceUrl"
+          placeholder="https://example.com/happy-hour"
+          className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2.5 text-[var(--ink)] outline-none ring-[var(--amber)] focus:ring-2"
+        />
+        <span className="text-sm text-[var(--muted)]">
+          Link to the restaurant website, menu, or event post.
+        </span>
+      </label>
+
       <button
         type="submit"
         disabled={pending}
         className="rounded-full bg-[var(--amber)] px-5 py-3 font-medium text-[var(--ink)] hover:bg-[var(--amber-hover)] disabled:opacity-60"
       >
-        {pending ? "Adding…" : "Add to the calendar"}
+        {pending ? "Submitting…" : "Submit for review"}
       </button>
     </form>
   );

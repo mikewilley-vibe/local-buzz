@@ -9,6 +9,15 @@ export type FormState = {
   error: string;
 } | null;
 
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export async function addListing(
   _prevState: FormState,
   formData: FormData,
@@ -19,6 +28,7 @@ export async function addListing(
   const startTime = String(formData.get("startTime") ?? "").trim();
   const endTime = String(formData.get("endTime") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
+  const sourceUrl = String(formData.get("sourceUrl") ?? "").trim();
   const days = formData
     .getAll("days")
     .map((value) => String(value))
@@ -30,18 +40,29 @@ export async function addListing(
   if (days.length === 0) return { error: "Please pick at least one day of the week." };
   if (!startTime) return { error: "Please add a start time." };
   if (!description) return { error: "Please add a short description." };
+  if (sourceUrl && !isHttpUrl(sourceUrl)) {
+    return {
+      error: "Please enter a valid http or https link, or leave Source URL blank.",
+    };
+  }
 
-  await addListingRecord({
-    id: crypto.randomUUID(),
-    placeName,
-    city,
-    type,
-    days: days as DayOfWeek[],
-    startTime,
-    endTime,
-    description,
-  });
+  try {
+    await addListingRecord({
+      placeName,
+      city,
+      type,
+      days: days as DayOfWeek[],
+      startTime,
+      endTime,
+      description,
+      sourceUrl: sourceUrl || null,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not submit listing.";
+    return { error: message };
+  }
 
   revalidatePath("/");
-  redirect("/?added=1");
+  redirect("/?submitted=1");
 }
