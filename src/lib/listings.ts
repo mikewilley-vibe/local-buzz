@@ -1,11 +1,12 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  CITIES,
-  DAYS,
-  LISTING_TYPES,
+  isCity,
+  isDay,
+  isListingType,
   type City,
   type DayOfWeek,
   type Listing,
+  type ListingFilters,
   type ListingType,
 } from "./types";
 
@@ -32,15 +33,26 @@ export type NewListing = {
   sourceUrl: string | null;
 };
 
-export async function getListings(): Promise<Listing[]> {
+export async function getListings(
+  filters: ListingFilters = {},
+): Promise<Listing[]> {
   const supabase = createSupabaseServerClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("listings")
     .select(
       "id, place_name, city, listing_type, days, start_time, end_time, description, source_url",
     )
-    .eq("status", "approved")
-    .order("start_time", { ascending: true });
+    .eq("status", "approved");
+
+  if (filters.city) {
+    query = query.eq("city", filters.city);
+  }
+
+  if (filters.type) {
+    query = query.eq("listing_type", filters.type);
+  }
+
+  const { data, error } = await query.order("start_time", { ascending: true });
 
   if (error) {
     throw new Error(`Could not load listings: ${error.message}`);
@@ -71,17 +83,7 @@ export async function addListingRecord(listing: NewListing) {
   }
 }
 
-export function isCity(value: string): value is Listing["city"] {
-  return (CITIES as readonly string[]).includes(value);
-}
-
-export function isListingType(value: string): value is Listing["type"] {
-  return (LISTING_TYPES as readonly string[]).includes(value);
-}
-
-export function isDay(value: string): value is Listing["days"][number] {
-  return (DAYS as readonly string[]).includes(value);
-}
+export { isCity, isDay, isListingType } from "./types";
 
 function mapListingRow(row: ListingRow): Listing | null {
   if (!isCity(row.city) || !isListingType(row.listing_type)) {

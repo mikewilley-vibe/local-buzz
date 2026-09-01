@@ -1,19 +1,20 @@
+import { ListingFiltersBar } from "@/components/ListingFilters";
 import { WeekCalendar } from "@/components/WeekCalendar";
+import { hasSubmittedConfirmation, parseListingFilters } from "@/lib/filters";
 import { getListings } from "@/lib/listings";
 import { getThisWeek } from "@/lib/week";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ submitted?: string }>;
-}) {
-  const [{ submitted }, listings] = await Promise.all([
-    searchParams,
-    getListings(),
-  ]);
+export default async function Home({ searchParams }: PageProps<"/">) {
+  const params = await searchParams;
+  const submitted = hasSubmittedConfirmation(params);
+  const filters = parseListingFilters(params);
+  const listings = await getListings(filters);
   const week = getThisWeek();
+  const listingCountLabel =
+    listings.length === 1 ? "1 listing this week" : `${listings.length} listings this week`;
 
   return (
     <div className="grid gap-8">
@@ -31,7 +32,7 @@ export default async function Home({
         </p>
       </div>
 
-      {submitted === "1" ? (
+      {submitted ? (
         <p
           className="rounded-2xl border border-[var(--amber)] bg-[var(--wash)] px-4 py-3 text-sm text-[var(--ink)]"
           role="status"
@@ -40,7 +41,32 @@ export default async function Home({
         </p>
       ) : null}
 
-      <WeekCalendar week={week} listings={listings} />
+      <div className="grid gap-3">
+        <ListingFiltersBar filters={filters} submitted={submitted} />
+        <p className="text-sm text-[var(--muted)]">{listingCountLabel}</p>
+      </div>
+
+      {listings.length === 0 ? (
+        <div
+          className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-8 text-center"
+          role="status"
+        >
+          <p className="font-display text-xl text-[var(--ink)]">
+            No buzz found for these filters yet.
+          </p>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Know a special or event that belongs here?
+          </p>
+          <Link
+            href="/add"
+            className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[var(--amber)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-[var(--amber-hover)]"
+          >
+            Add a listing
+          </Link>
+        </div>
+      ) : (
+        <WeekCalendar week={week} listings={listings} />
+      )}
     </div>
   );
 }

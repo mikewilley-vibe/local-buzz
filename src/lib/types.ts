@@ -46,6 +46,23 @@ export type Listing = {
   sourceUrl: string | null;
 };
 
+export type ListingFilters = {
+  city?: City;
+  type?: ListingType;
+};
+
+export function isCity(value: string): value is City {
+  return (CITIES as readonly string[]).includes(value);
+}
+
+export function isListingType(value: string): value is ListingType {
+  return (LISTING_TYPES as readonly string[]).includes(value);
+}
+
+export function isDay(value: string): value is DayOfWeek {
+  return (DAYS as readonly string[]).includes(value);
+}
+
 export const TYPE_LABELS: Record<ListingType, string> = {
   "happy-hour": "Happy hour",
   "food-special": "Food special",
