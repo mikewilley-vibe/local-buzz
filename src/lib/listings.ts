@@ -1,11 +1,13 @@
+import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
+  DAYS,
   isCity,
-  isDay,
   isListingType,
   type City,
   type DayOfWeek,
   type Listing,
+  type ListingDetail,
   type ListingFilters,
   type ListingType,
 } from "./types";
@@ -20,7 +22,16 @@ type ListingRow = {
   end_time: string | null;
   description: string;
   source_url: string | null;
+  confirmation_count?: number | null;
+  last_verified_at?: string | null;
 };
+
+const LISTING_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export function isListingId(value: string) {
+  return LISTING_ID_PATTERN.test(value);
+}
 
 export type NewListing = {
   placeName: string;
@@ -55,7 +66,8 @@ export async function getListings(
   const { data, error } = await query.order("start_time", { ascending: true });
 
   if (error) {
-    throw new Error(`Could not load listings: ${error.message}`);
+    console.error("Could not load listings");
+    throw new Error("Could not load listings.");
   }
 
   return (data ?? []).flatMap((row) => {
@@ -63,6 +75,44 @@ export async function getListings(
     return listing ? [listing] : [];
   });
 }
+
+export const getApprovedListing = cache(
+  async (id: string): Promise<ListingDetail | null> => {
+    if (!isListingId(id)) {
+      return null;
+    }
+
+    const supabase = createSupabaseServerClient();
+    const { data, error } = await supabase
+      .from("listings")
+      .select(
+        "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, confirmation_count, last_verified_at, status",
+      )
+      .eq("id", id)
+      .eq("status", "approved")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Could not load listing");
+      throw new Error("Could not load listing.");
+    }
+
+    if (!data) {
+      return null;
+    }
+
+    const listing = mapListingRow(data as ListingRow);
+    if (!listing) {
+      return null;
+    }
+
+    return {
+      ...listing,
+      confirmationCount: Number(data.confirmation_count ?? 0),
+      lastVerifiedAt: data.last_verified_at ?? null,
+    };
+  },
+);
 
 export async function addListingRecord(listing: NewListing) {
   const supabase = createSupabaseServerClient();
@@ -79,7 +129,8 @@ export async function addListingRecord(listing: NewListing) {
   });
 
   if (error) {
-    throw new Error(`Could not submit listing: ${error.message}`);
+    console.error("Could not submit listing");
+    throw new Error("Could not submit listing.");
   }
 }
 
@@ -90,7 +141,7 @@ function mapListingRow(row: ListingRow): Listing | null {
     return null;
   }
 
-  const days = (row.days ?? []).filter(isDay);
+  const days = DAYS.filter((day) => (row.days ?? []).includes(day));
   if (days.length === 0) {
     return null;
   }

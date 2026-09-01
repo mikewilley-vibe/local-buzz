@@ -46,6 +46,11 @@ export type Listing = {
   sourceUrl: string | null;
 };
 
+export type ListingDetail = Listing & {
+  confirmationCount: number;
+  lastVerifiedAt: string | null;
+};
+
 export type ListingFilters = {
   city?: City;
   type?: ListingType;
