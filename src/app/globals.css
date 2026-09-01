@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #fffaf3;
+  --wash: #f3e6d4;
+  --ink: #1c1917;
+  --muted: #6f6358;
+  --line: #e4d5c3;
+  --amber: #e8a54b;
+  --amber-hover: #f0b56a;
+  --amber-deep: #9a5b12;
+  --background: #f6efe4;
+}
+
+@theme inline {
+  --font-sans: var(--font-outfit);
+  --font-display: var(--font-fraunces);
+  --color-background: var(--background);
+}
+
+body {
+  background: var(--background);
+  color: var(--ink);
+}

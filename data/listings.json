@@ -1,0 +1,129 @@
+[
+  {
+    "id": "sample-1",
+    "placeName": "The Birch",
+    "city": "Norfolk",
+    "type": "happy-hour",
+    "days": [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday",
+      "friday"
+    ],
+    "startTime": "16:00",
+    "endTime": "19:00",
+    "description": "$6 drafts and $8 well drinks. Sample listing."
+  },
+  {
+    "id": "sample-2",
+    "placeName": "Cogan's Pizza",
+    "city": "Norfolk",
+    "type": "trivia",
+    "days": [
+      "tuesday"
+    ],
+    "startTime": "19:00",
+    "endTime": "21:00",
+    "description": "Weekly trivia. Teams welcome. Sample listing."
+  },
+  {
+    "id": "sample-3",
+    "placeName": "CP Shuckers",
+    "city": "Virginia Beach",
+    "type": "food-special",
+    "days": [
+      "wednesday"
+    ],
+    "startTime": "17:00",
+    "endTime": "21:00",
+    "description": "Steam pot night and cheap peel-and-eat shrimp. Sample listing."
+  },
+  {
+    "id": "sample-4",
+    "placeName": "The Taphouse",
+    "city": "Virginia Beach",
+    "type": "music-bingo",
+    "days": [
+      "thursday"
+    ],
+    "startTime": "19:30",
+    "endTime": "21:30",
+    "description": "Music bingo with drink specials during the game. Sample listing."
+  },
+  {
+    "id": "sample-5",
+    "placeName": "Tradition Brewing",
+    "city": "Newport News",
+    "type": "live-music",
+    "days": [
+      "friday"
+    ],
+    "startTime": "18:00",
+    "endTime": "21:00",
+    "description": "Patio bands most Fridays. Sample listing."
+  },
+  {
+    "id": "sample-6",
+    "placeName": "The Grey Goose",
+    "city": "Hampton",
+    "type": "happy-hour",
+    "days": [
+      "monday",
+      "tuesday",
+      "wednesday",
+      "thursday"
+    ],
+    "startTime": "15:00",
+    "endTime": "18:00",
+    "description": "Half-off appetizers and $5 house wines. Sample listing."
+  },
+  {
+    "id": "sample-7",
+    "placeName": "Lockett's Olde Virginia",
+    "city": "Portsmouth",
+    "type": "food-special",
+    "days": [
+      "friday"
+    ],
+    "startTime": "16:00",
+    "endTime": "19:00",
+    "description": "Fish fry specials on Friday evenings. Sample listing."
+  },
+  {
+    "id": "sample-8",
+    "placeName": "The Taphouse on Granby",
+    "city": "Norfolk",
+    "type": "other",
+    "days": [
+      "saturday"
+    ],
+    "startTime": "12:00",
+    "endTime": "15:00",
+    "description": "Saturday cornhole on the patio. Sample listing."
+  },
+  {
+    "id": "sample-9",
+    "placeName": "Cozys",
+    "city": "Chesapeake",
+    "type": "trivia",
+    "days": [
+      "wednesday"
+    ],
+    "startTime": "19:00",
+    "endTime": "21:00",
+    "description": "Midweek trivia and pint specials. Sample listing."
+  },
+  {
+    "id": "sample-10",
+    "placeName": "The Whaling Company",
+    "city": "Williamsburg",
+    "type": "happy-hour",
+    "days": [
+      "sunday"
+    ],
+    "startTime": "16:00",
+    "endTime": "18:00",
+    "description": "Sunday oyster happy hour. Sample listing."
+  }
+]
