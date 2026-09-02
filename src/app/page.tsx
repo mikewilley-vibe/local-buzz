@@ -13,7 +13,11 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const submitted = hasSubmittedConfirmation(params);
   const filters = parseListingFilters(params);
-  const listings = await getListings(filters);
+  const listings = await getListings({
+    city: filters.city,
+    type: filters.type,
+    zip: filters.zip,
+  });
   const week = getThisWeek();
   const listingCountLabel =
     listings.length === 1 ? "1 listing this week" : `${listings.length} listings this week`;

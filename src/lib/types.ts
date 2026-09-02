@@ -55,6 +55,7 @@ export type ListingDetail = Listing;
 export type ListingFilters = {
   city?: City;
   type?: ListingType;
+  zip?: string;
 };
 
 export const REPORT_REASONS = [

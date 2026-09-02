@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { logDevOperationError } from "@/lib/dev-log";
+import { listingMatchesZipFilter } from "@/lib/location";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   isCity,
@@ -62,7 +63,7 @@ export async function getListings(
     throw new Error("Could not load listings.");
   }
 
-  return (data ?? []).flatMap((row) => {
+  const listings = (data ?? []).flatMap((row) => {
     try {
       const listing = mapListingRow(row as ListingRow);
       return listing ? [listing] : [];
@@ -71,6 +72,13 @@ export async function getListings(
       return [];
     }
   });
+
+  if (!filters.zip) {
+    return listings;
+  }
+
+  const zip = filters.zip;
+  return listings.filter((listing) => listingMatchesZipFilter(listing.zipCode, zip));
 }
 
 export const getApprovedListing = cache(

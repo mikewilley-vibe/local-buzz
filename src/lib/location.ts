@@ -1,5 +1,25 @@
 export const STREET_ADDRESS_MAX = 200;
 export const ZIP_CODE_PATTERN = /^\d{5}(-\d{4})?$/;
+export const ZIP_CODE_HINT =
+  "Enter a 5-digit ZIP code or ZIP+4, like 23510 or 23510-1234.";
+
+export function isZipCode(value: string) {
+  return ZIP_CODE_PATTERN.test(value);
+}
+
+export function listingMatchesZipFilter(
+  listingZip: string | null | undefined,
+  filterZip: string,
+) {
+  const stored = listingZip?.trim() ?? "";
+  if (!stored || !isZipCode(stored) || !isZipCode(filterZip)) return false;
+
+  if (filterZip.length === 5) {
+    return stored === filterZip || stored.startsWith(`${filterZip}-`);
+  }
+
+  return stored === filterZip;
+}
 
 export type ListingLocation = {
   streetAddress?: string | null;
