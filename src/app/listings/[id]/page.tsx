@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ListingAccuracy } from "@/components/ListingAccuracy";
+import { ListingReport } from "@/components/ListingReport";
 import { getApprovedListing } from "@/lib/listings";
 import { DAY_LABELS, TYPE_LABELS } from "@/lib/types";
 import { formatTimeRange } from "@/lib/week";
@@ -96,6 +97,8 @@ export default async function ListingDetailPage({
         confirmationCount={listing.confirmationCount}
         lastVerifiedAt={listing.lastVerifiedAt}
       />
+
+      <ListingReport listingId={listing.id} />
     </article>
   );
 }

@@ -24,3 +24,21 @@ export function createSupabaseBrowserClient() {
 
   return browserClient;
 }
+
+export async function ensureAnonymousUser() {
+  const supabase = createSupabaseBrowserClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (session?.user) {
+    return { supabase, userId: session.user.id };
+  }
+
+  const { data, error } = await supabase.auth.signInAnonymously();
+  if (error || !data.user) {
+    return { supabase, userId: null };
+  }
+
+  return { supabase, userId: data.user.id };
+}

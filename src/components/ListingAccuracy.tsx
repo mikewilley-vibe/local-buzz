@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { createSupabaseBrowserClient, ensureAnonymousUser } from "@/lib/supabase/client";
 import { confirmationCountLabel, formatVerifiedDate } from "@/lib/week";
 
 const GENERIC_ERROR = "Couldn’t save that confirmation. Please try again.";
@@ -86,21 +86,12 @@ export function ListingAccuracy({
     setStatus("saving");
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { session: existingSession },
-      } = await supabase.auth.getSession();
-
-      let userId = existingSession?.user.id ?? null;
+      const { supabase, userId } = await ensureAnonymousUser();
 
       if (!userId) {
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error || !data.user) {
-          setStatus("ready");
-          setErrorMessage(GENERIC_ERROR);
-          return;
-        }
-        userId = data.user.id;
+        setStatus("ready");
+        setErrorMessage(GENERIC_ERROR);
+        return;
       }
 
       const { error } = await supabase.from("listing_confirmations").insert({
