@@ -4,13 +4,11 @@ import {
   DAYS,
   isCity,
   isListingType,
-  type City,
-  type DayOfWeek,
   type Listing,
   type ListingDetail,
   type ListingFilters,
-  type ListingType,
 } from "./types";
+import type { ListingFormValues } from "./listing-form";
 
 type ListingRow = {
   id: string;
@@ -33,16 +31,7 @@ export function isListingId(value: string) {
   return LISTING_ID_PATTERN.test(value);
 }
 
-export type NewListing = {
-  placeName: string;
-  city: City;
-  type: ListingType;
-  days: DayOfWeek[];
-  startTime: string;
-  endTime: string;
-  description: string;
-  sourceUrl: string | null;
-};
+export type NewListing = ListingFormValues;
 
 export async function getListings(
   filters: ListingFilters = {},

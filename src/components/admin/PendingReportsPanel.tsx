@@ -2,18 +2,41 @@
 
 import { useEffect, useState } from "react";
 import { listingPreview, reportReasonLabel } from "@/lib/admin";
+import { seedFromListingRow } from "@/lib/listing-form";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatDisplayDate } from "@/lib/week";
+import {
+  AdminListingEditor,
+  type AdminListingEditTarget,
+  type SavedListingRow,
+} from "./AdminListingEditor";
 
 const GENERIC_ERROR = "Couldn’t update that report. Please try again.";
 const LOAD_ERROR = "Couldn’t load change reports. Please try again.";
+const SAVE_SUCCESS = "Listing updated. You can still resolve or dismiss this report.";
+
+type ListingLookup = {
+  id: string;
+  status?: string | null;
+  place_name?: string | null;
+  city?: string | null;
+  listing_type?: string | null;
+  days?: string[] | null;
+  start_time?: string | null;
+  end_time?: string | null;
+  description?: string | null;
+  source_url?: string | null;
+};
 
 type PendingReport = {
   id: string;
+  listingId: string | null;
+  expectedStatus: "pending" | "approved" | null;
   reasonLabel: string;
   note: string | null;
   reportedLabel: string | null;
   listing: ReturnType<typeof listingPreview> | null;
+  values: ReturnType<typeof seedFromListingRow> | null;
 };
 
 type ReportAction = "resolved" | "dismissed";
@@ -26,17 +49,18 @@ type ReportRow = {
   created_at: string | null;
 };
 
-type ListingLookup = {
-  id: string;
-  place_name?: string | null;
-  city?: string | null;
-  listing_type?: string | null;
-  days?: string[] | null;
-  start_time?: string | null;
-  end_time?: string | null;
-  description?: string | null;
-  source_url?: string | null;
-};
+function listingStatus(value: string | null | undefined): "pending" | "approved" | null {
+  if (value === "pending" || value === "approved") return value;
+  return null;
+}
+
+function listingFromRow(row: ListingLookup) {
+  return {
+    listing: listingPreview(row),
+    values: seedFromListingRow(row),
+    expectedStatus: listingStatus(row.status),
+  };
+}
 
 export function PendingReportsPanel({
   onCountChange,
@@ -46,7 +70,9 @@ export function PendingReportsPanel({
   const [reports, setReports] = useState<PendingReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<AdminListingEditTarget | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +94,6 @@ export function PendingReportsPanel({
         if (error) {
           setErrorMessage(LOAD_ERROR);
           setReports([]);
-          onCountChange(0);
           setLoading(false);
           return;
         }
@@ -82,44 +107,51 @@ export function PendingReportsPanel({
           ),
         ];
 
-        const listingById = new Map<string, ReturnType<typeof listingPreview>>();
+        const listingById = new Map<string, ListingLookup>();
 
         if (listingIds.length > 0) {
           const { data: listingData, error: listingError } = await supabase
             .from("listings")
             .select(
-              "id, place_name, city, listing_type, days, start_time, end_time, description, source_url",
+              "id, status, place_name, city, listing_type, days, start_time, end_time, description, source_url",
             )
             .in("id", listingIds);
 
           if (listingError) {
             setErrorMessage(LOAD_ERROR);
             setReports([]);
-            onCountChange(0);
             setLoading(false);
             return;
           }
 
           for (const listing of (listingData ?? []) as ListingLookup[]) {
-            listingById.set(listing.id, listingPreview(listing));
+            listingById.set(listing.id, listing);
           }
         }
 
-        const next = reportRows.map((row) => ({
-          id: row.id,
-          reasonLabel: reportReasonLabel(row.reason ?? ""),
-          note: row.note?.trim() || null,
-          reportedLabel: formatDisplayDate(row.created_at ?? ""),
-          listing: row.listing_id ? listingById.get(row.listing_id) ?? null : null,
-        }));
+        const next = reportRows.map((row) => {
+          const listingRow = row.listing_id
+            ? listingById.get(row.listing_id)
+            : undefined;
+          const mapped = listingRow ? listingFromRow(listingRow) : null;
+
+          return {
+            id: row.id,
+            listingId: row.listing_id,
+            expectedStatus: mapped?.expectedStatus ?? null,
+            reasonLabel: reportReasonLabel(row.reason ?? ""),
+            note: row.note?.trim() || null,
+            reportedLabel: formatDisplayDate(row.created_at ?? ""),
+            listing: mapped?.listing ?? null,
+            values: mapped?.values ?? null,
+          };
+        });
 
         setReports(next);
-        onCountChange(next.length);
       } catch {
         if (!cancelled) {
           setErrorMessage(LOAD_ERROR);
           setReports([]);
-          onCountChange(0);
         }
       }
 
@@ -131,10 +163,15 @@ export function PendingReportsPanel({
     return () => {
       cancelled = true;
     };
-  }, [onCountChange]);
+  }, []);
+
+  useEffect(() => {
+    onCountChange(reports.length);
+  }, [onCountChange, reports.length]);
 
   async function updateStatus(id: string, action: ReportAction) {
     setErrorMessage(null);
+    setSuccessMessage(null);
     setSavingId(id);
 
     try {
@@ -152,16 +189,31 @@ export function PendingReportsPanel({
         return;
       }
 
-      setReports((current) => {
-        const next = current.filter((report) => report.id !== id);
-        onCountChange(next.length);
-        return next;
-      });
+      setReports((current) => current.filter((report) => report.id !== id));
     } catch {
       setErrorMessage(GENERIC_ERROR);
     }
 
     setSavingId(null);
+  }
+
+  function onSaved(row: SavedListingRow) {
+    const mapped = listingFromRow(row);
+    setReports((current) =>
+      current.map((report) =>
+        report.listingId === row.id
+          ? {
+              ...report,
+              listing: mapped.listing,
+              values: mapped.values,
+              expectedStatus: mapped.expectedStatus ?? report.expectedStatus,
+            }
+          : report,
+      ),
+    );
+    setEditing(null);
+    setErrorMessage(null);
+    setSuccessMessage(SAVE_SUCCESS);
   }
 
   if (loading) {
@@ -174,6 +226,15 @@ export function PendingReportsPanel({
 
   return (
     <div className="grid gap-4">
+      {successMessage ? (
+        <p
+          className="rounded-xl border border-[var(--line)] bg-[var(--wash)] px-4 py-3 text-sm text-[var(--ink)]"
+          role="status"
+        >
+          {successMessage}
+        </p>
+      ) : null}
+
       {errorMessage ? (
         <p className="text-sm text-red-800" role="alert">
           {errorMessage}
@@ -187,6 +248,8 @@ export function PendingReportsPanel({
       ) : (
         reports.map((report) => {
           const busy = savingId === report.id;
+          const canEdit =
+            Boolean(report.listingId && report.values && report.expectedStatus);
 
           return (
             <article
@@ -239,7 +302,27 @@ export function PendingReportsPanel({
                 </p>
               ) : null}
 
-              <div className="flex flex-col gap-2 sm:flex-row">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                {canEdit ? (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      if (!report.listingId || !report.values || !report.expectedStatus) {
+                        return;
+                      }
+                      setSuccessMessage(null);
+                      setEditing({
+                        id: report.listingId,
+                        expectedStatus: report.expectedStatus,
+                        values: report.values,
+                      });
+                    }}
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2 disabled:opacity-60"
+                  >
+                    Edit listing
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   disabled={busy}
@@ -261,6 +344,12 @@ export function PendingReportsPanel({
           );
         })
       )}
+
+      <AdminListingEditor
+        target={editing}
+        onClose={() => setEditing(null)}
+        onSaved={onSaved}
+      />
     </div>
   );
 }

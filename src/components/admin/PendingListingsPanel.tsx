@@ -2,25 +2,39 @@
 
 import { useEffect, useState } from "react";
 import { listingPreview } from "@/lib/admin";
+import { seedFromListingRow } from "@/lib/listing-form";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatDisplayDate } from "@/lib/week";
+import {
+  AdminListingEditor,
+  type AdminListingEditTarget,
+  type SavedListingRow,
+} from "./AdminListingEditor";
 
 const GENERIC_ERROR = "Couldn’t update that listing. Please try again.";
 const LOAD_ERROR = "Couldn’t load pending listings. Please try again.";
+const SAVE_SUCCESS = "Listing updated. It is still pending review.";
 
 type PendingListing = {
   id: string;
-  placeName: string;
-  city: string;
-  typeLabel: string;
-  daysLabel: string;
-  timeLabel: string;
-  description: string;
-  sourceUrl: string | null;
   submittedLabel: string | null;
+  preview: ReturnType<typeof listingPreview>;
+  values: ReturnType<typeof seedFromListingRow>;
 };
 
 type ListingAction = "approve" | "reject";
+
+function mapPendingRow(row: SavedListingRow & {
+  submitted_at?: string | null;
+  created_at?: string | null;
+}): PendingListing {
+  return {
+    id: row.id,
+    preview: listingPreview(row),
+    values: seedFromListingRow(row),
+    submittedLabel: formatDisplayDate(row.submitted_at ?? row.created_at ?? ""),
+  };
+}
 
 export function PendingListingsPanel({
   onCountChange,
@@ -30,8 +44,10 @@ export function PendingListingsPanel({
   const [listings, setListings] = useState<PendingListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [confirmRejectId, setConfirmRejectId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<AdminListingEditTarget | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -55,30 +71,15 @@ export function PendingListingsPanel({
         if (error) {
           setErrorMessage(LOAD_ERROR);
           setListings([]);
-          onCountChange(0);
           setLoading(false);
           return;
         }
 
-        const next = (data ?? []).map((row) => {
-          const preview = listingPreview(row);
-          const submitted = formatDisplayDate(
-            row.submitted_at ?? row.created_at ?? "",
-          );
-          return {
-            id: row.id,
-            ...preview,
-            submittedLabel: submitted,
-          };
-        });
-
-        setListings(next);
-        onCountChange(next.length);
+        setListings((data ?? []).map((row) => mapPendingRow(row)));
       } catch {
         if (!cancelled) {
           setErrorMessage(LOAD_ERROR);
           setListings([]);
-          onCountChange(0);
         }
       }
 
@@ -90,10 +91,15 @@ export function PendingListingsPanel({
     return () => {
       cancelled = true;
     };
-  }, [onCountChange]);
+  }, []);
+
+  useEffect(() => {
+    onCountChange(listings.length);
+  }, [listings.length, onCountChange]);
 
   async function updateStatus(id: string, action: ListingAction) {
     setErrorMessage(null);
+    setSuccessMessage(null);
     setSavingId(id);
 
     try {
@@ -111,17 +117,30 @@ export function PendingListingsPanel({
         return;
       }
 
-      setListings((current) => {
-        const next = current.filter((listing) => listing.id !== id);
-        onCountChange(next.length);
-        return next;
-      });
+      setListings((current) => current.filter((listing) => listing.id !== id));
       setConfirmRejectId(null);
     } catch {
       setErrorMessage(GENERIC_ERROR);
     }
 
     setSavingId(null);
+  }
+
+  function onSaved(row: SavedListingRow) {
+    setListings((current) =>
+      current.map((listing) =>
+        listing.id === row.id
+          ? {
+              ...listing,
+              preview: listingPreview(row),
+              values: seedFromListingRow(row),
+            }
+          : listing,
+      ),
+    );
+    setEditing(null);
+    setErrorMessage(null);
+    setSuccessMessage(SAVE_SUCCESS);
   }
 
   if (loading) {
@@ -134,6 +153,15 @@ export function PendingListingsPanel({
 
   return (
     <div className="grid gap-4">
+      {successMessage ? (
+        <p
+          className="rounded-xl border border-[var(--line)] bg-[var(--wash)] px-4 py-3 text-sm text-[var(--ink)]"
+          role="status"
+        >
+          {successMessage}
+        </p>
+      ) : null}
+
       {errorMessage ? (
         <p className="text-sm text-red-800" role="alert">
           {errorMessage}
@@ -156,21 +184,21 @@ export function PendingListingsPanel({
             >
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--amber-deep)]">
-                  {listing.typeLabel}
+                  {listing.preview.typeLabel}
                 </p>
                 <h2 className="mt-1 font-display text-2xl text-[var(--ink)]">
-                  {listing.placeName}
+                  {listing.preview.placeName}
                 </h2>
-                <p className="text-sm text-[var(--muted)]">{listing.city}</p>
+                <p className="text-sm text-[var(--muted)]">{listing.preview.city}</p>
               </div>
               <dl className="grid gap-2 text-sm">
                 <div>
                   <dt className="font-medium text-[var(--ink)]">Days</dt>
-                  <dd className="text-[var(--muted)]">{listing.daysLabel}</dd>
+                  <dd className="text-[var(--muted)]">{listing.preview.daysLabel}</dd>
                 </div>
                 <div>
                   <dt className="font-medium text-[var(--ink)]">Time</dt>
-                  <dd className="text-[var(--muted)]">{listing.timeLabel}</dd>
+                  <dd className="text-[var(--muted)]">{listing.preview.timeLabel}</dd>
                 </div>
                 {listing.submittedLabel ? (
                   <div>
@@ -180,17 +208,17 @@ export function PendingListingsPanel({
                 ) : null}
               </dl>
               <p className="text-sm leading-relaxed text-[var(--ink)]">
-                {listing.description}
+                {listing.preview.description}
               </p>
-              {listing.sourceUrl ? (
+              {listing.preview.sourceUrl ? (
                 <p className="text-sm">
                   <a
-                    href={listing.sourceUrl}
+                    href={listing.preview.sourceUrl}
                     className="break-all text-[var(--amber-deep)] underline outline-none ring-[var(--amber)] focus-visible:ring-2"
                     rel="noopener noreferrer"
                     target="_blank"
                   >
-                    {listing.sourceUrl}
+                    {listing.preview.sourceUrl}
                   </a>
                 </p>
               ) : null}
@@ -220,7 +248,7 @@ export function PendingListingsPanel({
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                   <button
                     type="button"
                     disabled={busy}
@@ -228,6 +256,21 @@ export function PendingListingsPanel({
                     className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--amber-hover)] focus-visible:ring-2 disabled:opacity-60"
                   >
                     {busy ? "Saving…" : "Approve"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      setSuccessMessage(null);
+                      setEditing({
+                        id: listing.id,
+                        expectedStatus: "pending",
+                        values: listing.values,
+                      });
+                    }}
+                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2 disabled:opacity-60"
+                  >
+                    Edit
                   </button>
                   <button
                     type="button"
@@ -243,6 +286,12 @@ export function PendingListingsPanel({
           );
         })
       )}
+
+      <AdminListingEditor
+        target={editing}
+        onClose={() => setEditing(null)}
+        onSaved={onSaved}
+      />
     </div>
   );
 }
