@@ -1,9 +1,10 @@
 import { cache } from "react";
+import { logDevOperationError } from "@/lib/dev-log";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  DAYS,
   isCity,
   isListingType,
+  normalizeListingDays,
   type Listing,
   type ListingDetail,
   type ListingFilters,
@@ -20,6 +21,8 @@ type ListingRow = {
   end_time: string | null;
   description: string;
   source_url: string | null;
+  street_address?: string | null;
+  zip_code?: string | null;
   confirmation_count?: number | null;
   last_verified_at?: string | null;
 };
@@ -40,7 +43,7 @@ export async function getListings(
   let query = supabase
     .from("listings")
     .select(
-      "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, confirmation_count, last_verified_at",
+      "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code, confirmation_count, last_verified_at",
     )
     .eq("status", "approved");
 
@@ -55,13 +58,18 @@ export async function getListings(
   const { data, error } = await query.order("start_time", { ascending: true });
 
   if (error) {
-    console.error("Could not load listings");
+    logDevOperationError("load approved listings", error);
     throw new Error("Could not load listings.");
   }
 
   return (data ?? []).flatMap((row) => {
-    const listing = mapListingRow(row as ListingRow);
-    return listing ? [listing] : [];
+    try {
+      const listing = mapListingRow(row as ListingRow);
+      return listing ? [listing] : [];
+    } catch (mappingError) {
+      logDevOperationError("map approved listing", mappingError);
+      return [];
+    }
   });
 }
 
@@ -75,14 +83,14 @@ export const getApprovedListing = cache(
     const { data, error } = await supabase
       .from("listings")
       .select(
-        "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, confirmation_count, last_verified_at, status",
+        "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code, confirmation_count, last_verified_at, status",
       )
       .eq("id", id)
       .eq("status", "approved")
       .maybeSingle();
 
     if (error) {
-      console.error("Could not load listing");
+      logDevOperationError("load listing detail", error);
       throw new Error("Could not load listing.");
     }
 
@@ -110,11 +118,13 @@ export async function addListingRecord(listing: NewListing) {
     end_time: listing.endTime || null,
     description: listing.description,
     source_url: listing.sourceUrl,
+    street_address: listing.streetAddress,
+    zip_code: listing.zipCode,
     status: "pending",
   });
 
   if (error) {
-    console.error("Could not submit listing");
+    logDevOperationError("submit listing", error);
     throw new Error("Could not submit listing.");
   }
 }
@@ -122,25 +132,38 @@ export async function addListingRecord(listing: NewListing) {
 export { isCity, isDay, isListingType } from "./types";
 
 function mapListingRow(row: ListingRow): Listing | null {
-  if (!isCity(row.city) || !isListingType(row.listing_type)) {
+  const city = row.city?.trim() ?? "";
+  const listingType = row.listing_type?.trim() ?? "";
+
+  if (!isCity(city) || !isListingType(listingType)) {
+    logDevOperationError(
+      "skip listing with unrecognized city or type",
+      { message: row.place_name ?? row.id },
+    );
     return null;
   }
 
-  const days = DAYS.filter((day) => (row.days ?? []).includes(day));
+  const days = normalizeListingDays(row.days);
   if (days.length === 0) {
+    logDevOperationError(
+      "skip listing with no matching days",
+      { message: row.place_name ?? row.id },
+    );
     return null;
   }
 
   return {
     id: row.id,
     placeName: row.place_name,
-    city: row.city,
-    type: row.listing_type,
+    city,
+    type: listingType,
     days,
     startTime: row.start_time ?? "",
     endTime: row.end_time ?? "",
     description: row.description,
     sourceUrl: row.source_url,
+    streetAddress: row.street_address?.trim() || null,
+    zipCode: row.zip_code?.trim() || null,
     confirmationCount: Number(row.confirmation_count ?? 0),
     lastVerifiedAt: row.last_verified_at ?? null,
   };

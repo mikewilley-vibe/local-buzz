@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { revalidatePublicListings } from "@/app/admin/actions";
 import { listingPreview } from "@/lib/admin";
+import { logDevOperationError } from "@/lib/dev-log";
 import { seedFromListingRow } from "@/lib/listing-form";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatDisplayDate } from "@/lib/week";
+import { DirectionsLink } from "@/components/DirectionsLink";
 import {
   AdminListingEditor,
   type AdminListingEditTarget,
@@ -61,7 +64,7 @@ export function PendingListingsPanel({
         const { data, error } = await supabase
           .from("listings")
           .select(
-            "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, submitted_at, created_at",
+            "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code, submitted_at, created_at",
           )
           .eq("status", "pending")
           .order("created_at", { ascending: true });
@@ -69,21 +72,22 @@ export function PendingListingsPanel({
         if (cancelled) return;
 
         if (error) {
+          logDevOperationError("load pending listings", error);
           setErrorMessage(LOAD_ERROR);
           setListings([]);
-          setLoading(false);
           return;
         }
 
         setListings((data ?? []).map((row) => mapPendingRow(row)));
-      } catch {
+      } catch (error) {
+        logDevOperationError("load pending listings", error);
         if (!cancelled) {
           setErrorMessage(LOAD_ERROR);
           setListings([]);
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      if (!cancelled) setLoading(false);
     }
 
     void load();
@@ -112,18 +116,22 @@ export function PendingListingsPanel({
         .select("id");
 
       if (error || !data?.length) {
+        logDevOperationError("update pending listing status", error);
         setErrorMessage(GENERIC_ERROR);
-        setSavingId(null);
         return;
       }
 
       setListings((current) => current.filter((listing) => listing.id !== id));
       setConfirmRejectId(null);
-    } catch {
+      if (action === "approve") {
+        await revalidatePublicListings();
+      }
+    } catch (error) {
+      logDevOperationError("update pending listing status", error);
       setErrorMessage(GENERIC_ERROR);
+    } finally {
+      setSavingId(null);
     }
-
-    setSavingId(null);
   }
 
   function onSaved(row: SavedListingRow) {
@@ -189,7 +197,16 @@ export function PendingListingsPanel({
                 <h2 className="mt-1 font-display text-2xl text-[var(--ink)]">
                   {listing.preview.placeName}
                 </h2>
-                <p className="text-sm text-[var(--muted)]">{listing.preview.city}</p>
+                <p className="text-sm text-[var(--muted)]">
+                  {listing.preview.fullLocation}
+                </p>
+                <DirectionsLink
+                  location={{
+                    streetAddress: listing.preview.streetAddress,
+                    city: listing.preview.city,
+                    zipCode: listing.preview.zipCode,
+                  }}
+                />
               </div>
               <dl className="grid gap-2 text-sm">
                 <div>
@@ -287,11 +304,14 @@ export function PendingListingsPanel({
         })
       )}
 
-      <AdminListingEditor
-        target={editing}
-        onClose={() => setEditing(null)}
-        onSaved={onSaved}
-      />
+      {editing ? (
+        <AdminListingEditor
+          key={editing.id}
+          target={editing}
+          onClose={() => setEditing(null)}
+          onSaved={onSaved}
+        />
+      ) : null}
     </div>
   );
 }

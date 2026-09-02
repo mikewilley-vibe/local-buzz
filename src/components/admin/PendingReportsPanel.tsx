@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { revalidatePublicListings } from "@/app/admin/actions";
 import { listingPreview, reportReasonLabel } from "@/lib/admin";
+import { logDevOperationError } from "@/lib/dev-log";
 import { seedFromListingRow } from "@/lib/listing-form";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { formatDisplayDate } from "@/lib/week";
+import { DirectionsLink } from "@/components/DirectionsLink";
 import {
   AdminListingEditor,
   type AdminListingEditTarget,
@@ -92,9 +95,9 @@ export function PendingReportsPanel({
         if (cancelled) return;
 
         if (error) {
+          logDevOperationError("load pending reports", error);
           setErrorMessage(LOAD_ERROR);
           setReports([]);
-          setLoading(false);
           return;
         }
 
@@ -113,14 +116,14 @@ export function PendingReportsPanel({
           const { data: listingData, error: listingError } = await supabase
             .from("listings")
             .select(
-              "id, status, place_name, city, listing_type, days, start_time, end_time, description, source_url",
+              "id, status, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code",
             )
             .in("id", listingIds);
 
           if (listingError) {
+            logDevOperationError("load listings for pending reports", listingError);
             setErrorMessage(LOAD_ERROR);
             setReports([]);
-            setLoading(false);
             return;
           }
 
@@ -148,14 +151,15 @@ export function PendingReportsPanel({
         });
 
         setReports(next);
-      } catch {
+      } catch (error) {
+        logDevOperationError("load pending reports", error);
         if (!cancelled) {
           setErrorMessage(LOAD_ERROR);
           setReports([]);
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      if (!cancelled) setLoading(false);
     }
 
     void load();
@@ -184,17 +188,18 @@ export function PendingReportsPanel({
         .select("id");
 
       if (error || !data?.length) {
+        logDevOperationError("update report status", error);
         setErrorMessage(GENERIC_ERROR);
-        setSavingId(null);
         return;
       }
 
       setReports((current) => current.filter((report) => report.id !== id));
-    } catch {
+    } catch (error) {
+      logDevOperationError("update report status", error);
       setErrorMessage(GENERIC_ERROR);
+    } finally {
+      setSavingId(null);
     }
-
-    setSavingId(null);
   }
 
   function onSaved(row: SavedListingRow) {
@@ -214,6 +219,7 @@ export function PendingReportsPanel({
     setEditing(null);
     setErrorMessage(null);
     setSuccessMessage(SAVE_SUCCESS);
+    void revalidatePublicListings();
   }
 
   if (loading) {
@@ -264,9 +270,18 @@ export function PendingReportsPanel({
                   {report.listing?.placeName ?? "Listing unavailable"}
                 </h2>
                 {report.listing ? (
-                  <p className="text-sm text-[var(--muted)]">
-                    {report.listing.city} · {report.listing.typeLabel}
-                  </p>
+                  <>
+                    <p className="text-sm text-[var(--muted)]">
+                      {report.listing.fullLocation} · {report.listing.typeLabel}
+                    </p>
+                    <DirectionsLink
+                      location={{
+                        streetAddress: report.listing.streetAddress,
+                        city: report.listing.city,
+                        zipCode: report.listing.zipCode,
+                      }}
+                    />
+                  </>
                 ) : null}
               </div>
 
@@ -345,11 +360,14 @@ export function PendingReportsPanel({
         })
       )}
 
-      <AdminListingEditor
-        target={editing}
-        onClose={() => setEditing(null)}
-        onSaved={onSaved}
-      />
+      {editing ? (
+        <AdminListingEditor
+          key={editing.id}
+          target={editing}
+          onClose={() => setEditing(null)}
+          onSaved={onSaved}
+        />
+      ) : null}
     </div>
   );
 }

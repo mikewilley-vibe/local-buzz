@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { revalidatePublicListings } from "@/app/admin/actions";
 import { listingPreview } from "@/lib/admin";
+import { logDevOperationError } from "@/lib/dev-log";
 import {
   classifyListingFreshness,
   FRESHNESS_LABELS,
@@ -11,6 +13,7 @@ import {
 import { seedFromListingRow } from "@/lib/listing-form";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { confirmationCountLabel, formatVerifiedDate } from "@/lib/week";
+import { DirectionsLink } from "@/components/DirectionsLink";
 import {
   AdminListingEditor,
   type AdminListingEditTarget,
@@ -71,7 +74,7 @@ export function NeedsVerificationPanel({
         const { data, error } = await supabase
           .from("listings")
           .select(
-            "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, last_verified_at, confirmation_count",
+            "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code, last_verified_at, confirmation_count",
           )
           .eq("status", "approved")
           .order("last_verified_at", { ascending: true, nullsFirst: true });
@@ -79,9 +82,9 @@ export function NeedsVerificationPanel({
         if (cancelled) return;
 
         if (error) {
+          logDevOperationError("load listings needing verification", error);
           setErrorMessage(LOAD_ERROR);
           setListings([]);
-          setLoading(false);
           return;
         }
 
@@ -91,14 +94,15 @@ export function NeedsVerificationPanel({
             return listing ? [listing] : [];
           }),
         );
-      } catch {
+      } catch (error) {
+        logDevOperationError("load listings needing verification", error);
         if (!cancelled) {
           setErrorMessage(LOAD_ERROR);
           setListings([]);
         }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-
-      if (!cancelled) setLoading(false);
     }
 
     void load();
@@ -127,6 +131,7 @@ export function NeedsVerificationPanel({
     setEditing(null);
     setErrorMessage(null);
     setSuccessMessage(SAVE_SUCCESS);
+    void revalidatePublicListings();
   }
 
   if (loading) {
@@ -176,7 +181,16 @@ export function NeedsVerificationPanel({
                 <h2 className="mt-1 font-display text-2xl text-[var(--ink)]">
                   {listing.preview.placeName}
                 </h2>
-                <p className="text-sm text-[var(--muted)]">{listing.preview.city}</p>
+                <p className="text-sm text-[var(--muted)]">
+                  {listing.preview.fullLocation}
+                </p>
+                <DirectionsLink
+                  location={{
+                    streetAddress: listing.preview.streetAddress,
+                    city: listing.preview.city,
+                    zipCode: listing.preview.zipCode,
+                  }}
+                />
               </div>
 
               <p className="text-sm font-medium text-[var(--ink)]">
@@ -229,11 +243,14 @@ export function NeedsVerificationPanel({
         })
       )}
 
-      <AdminListingEditor
-        target={editing}
-        onClose={() => setEditing(null)}
-        onSaved={onSaved}
-      />
+      {editing ? (
+        <AdminListingEditor
+          key={editing.id}
+          target={editing}
+          onClose={() => setEditing(null)}
+          onSaved={onSaved}
+        />
+      ) : null}
     </div>
   );
 }

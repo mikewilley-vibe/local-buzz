@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { checkIsAdministrator } from "@/lib/admin";
+import { logDevOperationError } from "@/lib/dev-log";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PendingListingsPanel } from "./PendingListingsPanel";
 import { PendingReportsPanel } from "./PendingReportsPanel";
@@ -30,11 +31,26 @@ export function AdminDashboard() {
       try {
         const supabase = createSupabaseBrowserClient();
         const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (cancelled) return;
+
+        if (!session?.user || session.user.is_anonymous) {
+          router.replace("/admin/login");
+          return;
+        }
+
+        const {
           data: { user },
+          error: userError,
         } = await supabase.auth.getUser();
 
-        if (!user || user.is_anonymous) {
-          if (!cancelled) router.replace("/admin/login");
+        if (cancelled) return;
+
+        if (userError || !user || user.is_anonymous) {
+          logDevOperationError("admin dashboard access check", userError);
+          router.replace("/admin/login");
           return;
         }
 
@@ -43,7 +59,8 @@ export function AdminDashboard() {
         if (cancelled) return;
 
         setGate(isAdmin ? "ready" : "forbidden");
-      } catch {
+      } catch (error) {
+        logDevOperationError("admin dashboard access check", error);
         if (!cancelled) router.replace("/admin/login");
       }
     }
@@ -53,17 +70,21 @@ export function AdminDashboard() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+    // Run once. Re-running when `router` changes cancels getUser and can
+    // leave this screen on “Checking administrator access…”.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function signOut() {
     setSigningOut(true);
     try {
       const supabase = createSupabaseBrowserClient();
       await supabase.auth.signOut();
-    } catch {
-      // Still leave the dashboard.
+    } catch (error) {
+      logDevOperationError("admin sign out", error);
+    } finally {
+      router.replace("/admin/login");
     }
-    router.replace("/admin/login");
   }
 
   if (gate === "loading") {

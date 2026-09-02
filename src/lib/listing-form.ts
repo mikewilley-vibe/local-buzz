@@ -1,12 +1,13 @@
 import {
-  DAYS,
   isCity,
   isDay,
   isListingType,
+  normalizeListingDays,
   type City,
   type DayOfWeek,
   type ListingType,
 } from "./types";
+import { STREET_ADDRESS_MAX, ZIP_CODE_PATTERN } from "./location";
 
 export type ListingFormValues = {
   placeName: string;
@@ -17,6 +18,8 @@ export type ListingFormValues = {
   endTime: string;
   description: string;
   sourceUrl: string | null;
+  streetAddress: string | null;
+  zipCode: string | null;
 };
 
 export type ListingFormSeed = {
@@ -28,6 +31,8 @@ export type ListingFormSeed = {
   endTime: string;
   description: string;
   sourceUrl: string;
+  streetAddress: string;
+  zipCode: string;
 };
 
 const TIME_PATTERN = /^\d{2}:\d{2}(?::\d{2})?$/;
@@ -55,16 +60,20 @@ export function seedFromListingRow(row: {
   end_time?: string | null;
   description?: string | null;
   source_url?: string | null;
+  street_address?: string | null;
+  zip_code?: string | null;
 }): ListingFormSeed {
   return {
     placeName: row.place_name ?? "",
     city: row.city ?? "",
     type: row.listing_type ?? "",
-    days: DAYS.filter((day) => (row.days ?? []).includes(day)),
+    days: normalizeListingDays(row.days),
     startTime: timeInputValue(row.start_time),
     endTime: timeInputValue(row.end_time),
     description: row.description ?? "",
     sourceUrl: row.source_url ?? "",
+    streetAddress: row.street_address ?? "",
+    zipCode: row.zip_code ?? "",
   };
 }
 
@@ -78,6 +87,8 @@ export function listingFormToUpdate(listing: ListingFormValues) {
     end_time: listing.endTime || null,
     description: listing.description,
     source_url: listing.sourceUrl,
+    street_address: listing.streetAddress,
+    zip_code: listing.zipCode,
   };
 }
 
@@ -91,6 +102,8 @@ export function parseListingFormData(
   const endTime = String(formData.get("endTime") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const sourceUrl = String(formData.get("sourceUrl") ?? "").trim();
+  const streetAddress = String(formData.get("streetAddress") ?? "").trim();
+  const zipCode = String(formData.get("zipCode") ?? "").trim();
   const days = formData
     .getAll("days")
     .map((value) => String(value))
@@ -116,6 +129,16 @@ export function parseListingFormData(
       error: "Please enter a valid http or https link, or leave Source URL blank.",
     };
   }
+  if (streetAddress.length > STREET_ADDRESS_MAX) {
+    return {
+      error: "Please keep the street address to 200 characters or fewer.",
+    };
+  }
+  if (zipCode && !ZIP_CODE_PATTERN.test(zipCode)) {
+    return {
+      error: "Please enter a 5-digit ZIP code, a ZIP+4, or leave it blank.",
+    };
+  }
 
   return {
     listing: {
@@ -127,6 +150,8 @@ export function parseListingFormData(
       endTime,
       description,
       sourceUrl: sourceUrl || null,
+      streetAddress: streetAddress || null,
+      zipCode: zipCode || null,
     },
   };
 }

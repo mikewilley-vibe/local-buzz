@@ -44,6 +44,8 @@ export type Listing = {
   endTime: string;
   description: string;
   sourceUrl: string | null;
+  streetAddress: string | null;
+  zipCode: string | null;
   confirmationCount: number;
   lastVerifiedAt: string | null;
 };
@@ -87,6 +89,22 @@ export function isListingType(value: string): value is ListingType {
 
 export function isDay(value: string): value is DayOfWeek {
   return (DAYS as readonly string[]).includes(value);
+}
+
+export function normalizeListingDays(value: unknown): DayOfWeek[] {
+  const items = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(/[,\s{}"]+/).filter(Boolean)
+      : [];
+
+  const matched = new Set<DayOfWeek>();
+  for (const item of items) {
+    const day = String(item).trim().toLowerCase();
+    if (isDay(day)) matched.add(day);
+  }
+
+  return DAYS.filter((day) => matched.has(day));
 }
 
 export const TYPE_LABELS: Record<ListingType, string> = {

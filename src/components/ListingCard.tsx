@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TYPE_LABELS, type Listing } from "@/lib/types";
+import { formatCityWithZip } from "@/lib/location";
 import { formatTimeRange } from "@/lib/week";
 import { FreshnessBadge } from "./FreshnessBadge";
 
@@ -12,6 +13,7 @@ export function ListingCard({
 }) {
   const time = formatTimeRange(listing.startTime, listing.endTime);
   const href = `/listings/${listing.id}`;
+  const cityLine = formatCityWithZip(listing.city, listing.zipCode);
 
   if (compact) {
     return (
@@ -27,7 +29,7 @@ export function ListingCard({
             {listing.placeName}
           </h3>
           <p className="text-[11px] leading-snug text-[var(--muted)]">
-            {listing.city}
+            {cityLine}
             {time ? ` · ${time}` : ""}
           </p>
           <FreshnessBadge lastVerifiedAt={listing.lastVerifiedAt} compact />
@@ -49,7 +51,7 @@ export function ListingCard({
           {listing.placeName}
         </h3>
         <p className="text-sm text-[var(--muted)]">
-          {listing.city}
+          {cityLine}
           {time ? ` · ${time}` : ""}
         </p>
         <div className="mt-2">

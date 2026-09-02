@@ -8,6 +8,7 @@ import {
   isListingType,
 } from "@/lib/types";
 import type { ListingFormSeed } from "@/lib/listing-form";
+import { STREET_ADDRESS_MAX } from "@/lib/location";
 
 const fieldClass =
   "min-h-11 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2.5 text-[var(--ink)] outline-none ring-[var(--amber)] focus:ring-2";
@@ -37,6 +38,7 @@ export function ListingFormFields({
           disabled={disabled}
           defaultValue={defaultValues?.placeName ?? ""}
           placeholder="e.g. The Birch"
+          autoComplete="organization"
           className={fieldClass}
         />
       </label>
@@ -44,14 +46,15 @@ export function ListingFormFields({
       <div className="grid gap-5 sm:grid-cols-2">
         <label className="grid gap-1.5">
           <span className="text-sm font-medium text-[var(--ink)]">City</span>
-          <select
-            id={`${idPrefix}-city`}
-            name="city"
-            required
-            disabled={disabled}
-            defaultValue={isCity(cityValue) ? cityValue : ""}
-            className={fieldClass}
-          >
+        <select
+          id={`${idPrefix}-city`}
+          name="city"
+          required
+          autoComplete="address-level2"
+          disabled={disabled}
+          defaultValue={isCity(cityValue) ? cityValue : ""}
+          className={fieldClass}
+        >
             <option value="" disabled>
               Choose a city
             </option>
@@ -84,6 +87,49 @@ export function ListingFormFields({
           </select>
         </label>
       </div>
+
+      <label className="grid gap-1.5">
+        <span className="text-sm font-medium text-[var(--ink)]">
+          Street address{" "}
+          <span className="font-normal text-[var(--muted)]">(optional)</span>
+        </span>
+        <input
+          id={`${idPrefix}-streetAddress`}
+          name="streetAddress"
+          autoComplete="street-address"
+          maxLength={STREET_ADDRESS_MAX}
+          disabled={disabled}
+          defaultValue={defaultValues?.streetAddress ?? ""}
+          placeholder="e.g. 401 Granby St"
+          aria-describedby={`${idPrefix}-streetAddress-hint`}
+          className={fieldClass}
+        />
+        <span id={`${idPrefix}-streetAddress-hint`} className="text-sm text-[var(--muted)]">
+          Up to 200 characters. Used for directions when provided.
+        </span>
+      </label>
+
+      <label className="grid gap-1.5">
+        <span className="text-sm font-medium text-[var(--ink)]">
+          ZIP code{" "}
+          <span className="font-normal text-[var(--muted)]">(optional)</span>
+        </span>
+        <input
+          id={`${idPrefix}-zipCode`}
+          name="zipCode"
+          autoComplete="postal-code"
+          pattern="\d{5}(-\d{4})?"
+          title="Use 5 digits or ZIP+4, like 23510 or 23510-1234"
+          disabled={disabled}
+          defaultValue={defaultValues?.zipCode ?? ""}
+          placeholder="23510"
+          aria-describedby={`${idPrefix}-zipCode-hint`}
+          className={fieldClass}
+        />
+        <span id={`${idPrefix}-zipCode-hint`} className="text-sm text-[var(--muted)]">
+          5-digit ZIP or ZIP+4, like 23510 or 23510-1234.
+        </span>
+      </label>
 
       <fieldset className="grid gap-2" disabled={disabled}>
         <legend className="text-sm font-medium text-[var(--ink)]">

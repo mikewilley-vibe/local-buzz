@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { ListingFormFields } from "@/components/ListingFormFields";
+import { logDevOperationError } from "@/lib/dev-log";
 import {
   listingFormToUpdate,
   parseListingFormData,
@@ -47,14 +48,6 @@ export function AdminListingEditor({
   const savingRef = useRef(false);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const targetId = target?.id ?? null;
-  const [seenId, setSeenId] = useState(targetId);
-
-  if (targetId !== seenId) {
-    setSeenId(targetId);
-    setSaving(false);
-    setErrorMessage(null);
-  }
 
   useEffect(() => {
     onCloseRef.current = onClose;
@@ -131,19 +124,21 @@ export function AdminListingEditor({
         .eq("id", target.id)
         .eq("status", target.expectedStatus)
         .select(
-          "id, place_name, city, listing_type, days, start_time, end_time, description, source_url",
+          "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code",
         )
         .maybeSingle();
 
       if (error || !data) {
+        logDevOperationError("save admin listing edits", error);
         setErrorMessage(SAVE_ERROR);
-        setSaving(false);
         return;
       }
 
       onSaved(data as SavedListingRow);
-    } catch {
+    } catch (error) {
+      logDevOperationError("save admin listing edits", error);
       setErrorMessage(SAVE_ERROR);
+    } finally {
       setSaving(false);
     }
   }

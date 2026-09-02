@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { checkIsAdministrator } from "@/lib/admin";
+import { logDevOperationError } from "@/lib/dev-log";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const GENERIC_ERROR = "Couldn’t sign in. Please try again.";
@@ -22,10 +23,21 @@ export function AdminLoginForm() {
       try {
         const supabase = createSupabaseBrowserClient();
         const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.user || session.user.is_anonymous) {
+          if (!cancelled) setChecking(false);
+          return;
+        }
+
+        const {
           data: { user },
+          error: userError,
         } = await supabase.auth.getUser();
 
-        if (!user || user.is_anonymous) {
+        if (!user || user.is_anonymous || userError) {
+          if (userError) logDevOperationError("admin login session check", userError);
           if (!cancelled) setChecking(false);
           return;
         }
@@ -35,8 +47,8 @@ export function AdminLoginForm() {
           router.replace("/admin");
           return;
         }
-      } catch {
-        // Stay on the login form.
+      } catch (error) {
+        logDevOperationError("admin login session check", error);
       }
 
       if (!cancelled) setChecking(false);
@@ -47,7 +59,10 @@ export function AdminLoginForm() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+    // Run once. Re-running when `router` changes can cancel getUser and
+    // leave this screen on “Checking sign-in…”.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -71,16 +86,18 @@ export function AdminLoginForm() {
       setPassword("");
 
       if (error || !data.user) {
+        logDevOperationError("admin sign in", error);
         setErrorMessage(GENERIC_ERROR);
-        setPending(false);
         return;
       }
 
       await checkIsAdministrator(supabase, data.user.id);
       router.replace("/admin");
-    } catch {
+    } catch (error) {
+      logDevOperationError("admin sign in", error);
       setPassword("");
       setErrorMessage(GENERIC_ERROR);
+    } finally {
       setPending(false);
     }
   }

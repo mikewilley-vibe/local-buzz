@@ -15,5 +15,12 @@ export function createSupabaseServerClient() {
       persistSession: false,
       autoRefreshToken: false,
     },
+    global: {
+      fetch: (input, init) =>
+        fetch(input, {
+          ...init,
+          cache: "no-store",
+        }),
+    },
   });
 }

@@ -6,6 +6,8 @@ import { getThisWeek } from "@/lib/week";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export default async function Home({ searchParams }: PageProps<"/">) {
   const params = await searchParams;

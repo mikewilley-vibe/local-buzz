@@ -4,12 +4,15 @@ import { notFound } from "next/navigation";
 import { ListingAccuracy } from "@/components/ListingAccuracy";
 import { ListingReport } from "@/components/ListingReport";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
+import { DirectionsLink } from "@/components/DirectionsLink";
 import { getApprovedListing } from "@/lib/listings";
+import { formatFullLocation } from "@/lib/location";
 import { DAY_LABELS, TYPE_LABELS } from "@/lib/types";
 import { formatTimeRange } from "@/lib/week";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function generateMetadata({
   params,
@@ -39,6 +42,11 @@ export default async function ListingDetailPage({
 
   const time = formatTimeRange(listing.startTime, listing.endTime);
   const days = listing.days.map((day) => DAY_LABELS[day]).join(", ");
+  const locationLabel = formatFullLocation({
+    streetAddress: listing.streetAddress,
+    city: listing.city,
+    zipCode: listing.zipCode,
+  });
 
   return (
     <article className="mx-auto grid max-w-xl gap-6">
@@ -58,10 +66,25 @@ export default async function ListingDetailPage({
         <h1 className="mt-2 font-display text-4xl leading-tight text-[var(--ink)]">
           {listing.placeName}
         </h1>
-        <p className="mt-2 text-[var(--muted)]">{listing.city}</p>
+        {locationLabel ? (
+          <p className="mt-2 text-[var(--muted)]">{locationLabel}</p>
+        ) : (
+          <p className="mt-2 text-[var(--muted)]">{listing.city}</p>
+        )}
         <div className="mt-3">
           <FreshnessBadge lastVerifiedAt={listing.lastVerifiedAt} />
         </div>
+        {listing.streetAddress ? (
+          <div className="mt-1">
+            <DirectionsLink
+              location={{
+                streetAddress: listing.streetAddress,
+                city: listing.city,
+                zipCode: listing.zipCode,
+              }}
+            />
+          </div>
+        ) : null}
       </header>
 
       <p className="text-base leading-relaxed text-[var(--ink)]">
