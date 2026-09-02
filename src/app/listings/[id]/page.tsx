@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ListingAccuracy } from "@/components/ListingAccuracy";
 import { ListingReport } from "@/components/ListingReport";
+import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { getApprovedListing } from "@/lib/listings";
 import { DAY_LABELS, TYPE_LABELS } from "@/lib/types";
 import { formatTimeRange } from "@/lib/week";
@@ -58,6 +59,9 @@ export default async function ListingDetailPage({
           {listing.placeName}
         </h1>
         <p className="mt-2 text-[var(--muted)]">{listing.city}</p>
+        <div className="mt-3">
+          <FreshnessBadge lastVerifiedAt={listing.lastVerifiedAt} />
+        </div>
       </header>
 
       <p className="text-base leading-relaxed text-[var(--ink)]">

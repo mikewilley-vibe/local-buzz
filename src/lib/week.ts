@@ -2,7 +2,7 @@ import { DAYS, type DayOfWeek } from "./types";
 
 const EASTERN = "America/New_York";
 
-function easternDateParts(date = new Date()) {
+export function easternDateParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: EASTERN,
     year: "numeric",
@@ -20,6 +20,11 @@ function easternDateParts(date = new Date()) {
     day: Number(get("day")),
     weekday: get("weekday"),
   };
+}
+
+export function easternCalendarUtc(date = new Date()) {
+  const parts = easternDateParts(date);
+  return Date.UTC(parts.year, parts.month - 1, parts.day);
 }
 
 const WEEKDAY_TO_DAY: Record<string, DayOfWeek> = {

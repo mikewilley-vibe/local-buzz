@@ -44,12 +44,11 @@ export type Listing = {
   endTime: string;
   description: string;
   sourceUrl: string | null;
-};
-
-export type ListingDetail = Listing & {
   confirmationCount: number;
   lastVerifiedAt: string | null;
 };
+
+export type ListingDetail = Listing;
 
 export type ListingFilters = {
   city?: City;

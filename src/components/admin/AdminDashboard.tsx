@@ -6,9 +6,12 @@ import { checkIsAdministrator } from "@/lib/admin";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PendingListingsPanel } from "./PendingListingsPanel";
 import { PendingReportsPanel } from "./PendingReportsPanel";
+import { NeedsVerificationPanel } from "./NeedsVerificationPanel";
 
 type Gate = "loading" | "forbidden" | "ready";
-type Tab = "listings" | "reports";
+type Tab = "listings" | "reports" | "verification";
+
+const TABS: Tab[] = ["listings", "reports", "verification"];
 
 export function AdminDashboard() {
   const router = useRouter();
@@ -17,6 +20,7 @@ export function AdminDashboard() {
   const [tab, setTab] = useState<Tab>("listings");
   const [listingCount, setListingCount] = useState(0);
   const [reportCount, setReportCount] = useState(0);
+  const [verificationCount, setVerificationCount] = useState(0);
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
@@ -91,8 +95,16 @@ export function AdminDashboard() {
 
   const listingsTabId = `${tabId}-listings`;
   const reportsTabId = `${tabId}-reports`;
+  const verificationTabId = `${tabId}-verification`;
   const listingsPanelId = `${tabId}-listings-panel`;
   const reportsPanelId = `${tabId}-reports-panel`;
+  const verificationPanelId = `${tabId}-verification-panel`;
+
+  function tabButtonId(next: Tab) {
+    if (next === "listings") return listingsTabId;
+    if (next === "reports") return reportsTabId;
+    return verificationTabId;
+  }
 
   return (
     <div className="grid gap-6">
@@ -105,7 +117,7 @@ export function AdminDashboard() {
             Admin dashboard
           </h1>
           <p className="mt-2 text-[var(--muted)]">
-            Review pending listings and change reports.
+            Review pending listings, change reports, and listings that need verification.
           </p>
         </div>
         <button
@@ -121,16 +133,16 @@ export function AdminDashboard() {
       <div
         role="tablist"
         aria-label="Moderation queues"
-        className="flex flex-col gap-2 sm:flex-row"
+        className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
         onKeyDown={(event) => {
           if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
           event.preventDefault();
-          const next = tab === "listings" ? "reports" : "listings";
+          const index = TABS.indexOf(tab);
+          const offset = event.key === "ArrowRight" ? 1 : -1;
+          const next = TABS[(index + offset + TABS.length) % TABS.length];
           setTab(next);
           requestAnimationFrame(() => {
-            document
-              .getElementById(next === "listings" ? listingsTabId : reportsTabId)
-              ?.focus();
+            document.getElementById(tabButtonId(next))?.focus();
           });
         }}
       >
@@ -166,6 +178,22 @@ export function AdminDashboard() {
         >
           Change reports ({reportCount})
         </button>
+        <button
+          id={verificationTabId}
+          type="button"
+          role="tab"
+          aria-selected={tab === "verification"}
+          aria-controls={verificationPanelId}
+          tabIndex={tab === "verification" ? 0 : -1}
+          onClick={() => setTab("verification")}
+          className={`min-h-11 rounded-full px-4 py-2 text-sm font-medium outline-none ring-[var(--amber)] focus-visible:ring-2 ${
+            tab === "verification"
+              ? "bg-[var(--amber)] text-[var(--ink)]"
+              : "border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--wash)]"
+          }`}
+        >
+          Needs verification ({verificationCount})
+        </button>
       </div>
 
       <div
@@ -183,6 +211,14 @@ export function AdminDashboard() {
         hidden={tab !== "reports"}
       >
         <PendingReportsPanel onCountChange={setReportCount} />
+      </div>
+      <div
+        id={verificationPanelId}
+        role="tabpanel"
+        aria-labelledby={verificationTabId}
+        hidden={tab !== "verification"}
+      >
+        <NeedsVerificationPanel onCountChange={setVerificationCount} />
       </div>
     </div>
   );

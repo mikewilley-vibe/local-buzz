@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TYPE_LABELS, type Listing } from "@/lib/types";
 import { formatTimeRange } from "@/lib/week";
+import { FreshnessBadge } from "./FreshnessBadge";
 
 export function ListingCard({
   listing,
@@ -29,6 +30,7 @@ export function ListingCard({
             {listing.city}
             {time ? ` · ${time}` : ""}
           </p>
+          <FreshnessBadge lastVerifiedAt={listing.lastVerifiedAt} compact />
         </article>
       </Link>
     );
@@ -50,6 +52,9 @@ export function ListingCard({
           {listing.city}
           {time ? ` · ${time}` : ""}
         </p>
+        <div className="mt-2">
+          <FreshnessBadge lastVerifiedAt={listing.lastVerifiedAt} />
+        </div>
         <p className="mt-2 text-sm leading-relaxed text-[var(--ink)]">
           {listing.description}
         </p>

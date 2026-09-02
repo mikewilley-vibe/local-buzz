@@ -40,7 +40,7 @@ export async function getListings(
   let query = supabase
     .from("listings")
     .select(
-      "id, place_name, city, listing_type, days, start_time, end_time, description, source_url",
+      "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, confirmation_count, last_verified_at",
     )
     .eq("status", "approved");
 
@@ -95,11 +95,7 @@ export const getApprovedListing = cache(
       return null;
     }
 
-    return {
-      ...listing,
-      confirmationCount: Number(data.confirmation_count ?? 0),
-      lastVerifiedAt: data.last_verified_at ?? null,
-    };
+    return listing;
   },
 );
 
@@ -145,5 +141,7 @@ function mapListingRow(row: ListingRow): Listing | null {
     endTime: row.end_time ?? "",
     description: row.description,
     sourceUrl: row.source_url,
+    confirmationCount: Number(row.confirmation_count ?? 0),
+    lastVerifiedAt: row.last_verified_at ?? null,
   };
 }
