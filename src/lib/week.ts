@@ -109,6 +109,17 @@ export function confirmationCountLabel(count: number) {
   return `${count} confirmations`;
 }
 
+export function formatDisplayDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: EASTERN,
+  }).format(date);
+}
+
 function formatTime(value: string) {
   if (!value) return "";
   const [hoursRaw, minutesRaw] = value.split(":");
