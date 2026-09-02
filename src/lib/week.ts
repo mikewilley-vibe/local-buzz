@@ -94,6 +94,21 @@ export function formatTimeRange(startTime: string, endTime: string) {
   return "";
 }
 
+export function formatVerifiedDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "long",
+    timeZone: EASTERN,
+  }).format(date);
+}
+
+export function confirmationCountLabel(count: number) {
+  if (count === 1) return "1 confirmation";
+  return `${count} confirmations`;
+}
+
 function formatTime(value: string) {
   if (!value) return "";
   const [hoursRaw, minutesRaw] = value.split(":");

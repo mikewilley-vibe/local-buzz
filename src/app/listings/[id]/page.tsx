@@ -1,26 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ListingAccuracy } from "@/components/ListingAccuracy";
 import { getApprovedListing } from "@/lib/listings";
 import { DAY_LABELS, TYPE_LABELS } from "@/lib/types";
 import { formatTimeRange } from "@/lib/week";
 
 export const dynamic = "force-dynamic";
-
-function formatVerifiedDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return null;
-
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "long",
-    timeZone: "America/New_York",
-  }).format(date);
-}
-
-function confirmationLabel(count: number) {
-  if (count === 1) return "1 confirmation";
-  return `${count} confirmations`;
-}
+export const revalidate = 0;
 
 export async function generateMetadata({
   params,
@@ -49,9 +36,6 @@ export default async function ListingDetailPage({
   }
 
   const time = formatTimeRange(listing.startTime, listing.endTime);
-  const verified = listing.lastVerifiedAt
-    ? formatVerifiedDate(listing.lastVerifiedAt)
-    : null;
   const days = listing.days.map((day) => DAY_LABELS[day]).join(", ");
 
   return (
@@ -105,23 +89,13 @@ export default async function ListingDetailPage({
             </dd>
           </div>
         ) : null}
-        {verified ? (
-          <div>
-            <dt className="text-sm font-medium text-[var(--ink)]">
-              Last verified
-            </dt>
-            <dd className="mt-1 text-sm text-[var(--muted)]">{verified}</dd>
-          </div>
-        ) : null}
-        <div>
-          <dt className="text-sm font-medium text-[var(--ink)]">
-            Confirmations
-          </dt>
-          <dd className="mt-1 text-sm text-[var(--muted)]">
-            {confirmationLabel(listing.confirmationCount)}
-          </dd>
-        </div>
       </dl>
+
+      <ListingAccuracy
+        listingId={listing.id}
+        confirmationCount={listing.confirmationCount}
+        lastVerifiedAt={listing.lastVerifiedAt}
+      />
     </article>
   );
 }
