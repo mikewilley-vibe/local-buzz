@@ -3,10 +3,15 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { checkIsAdministrator } from "@/lib/admin";
+import {
+  replaceSessionWithPassword,
+  resolveAdminAccess,
+} from "@/lib/admin-access";
 import { logDevOperationError } from "@/lib/dev-log";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const GENERIC_ERROR = "Couldn’t sign in. Please try again.";
+const FORBIDDEN_ERROR = "You do not have administrator access.";
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -21,37 +26,18 @@ export function AdminLoginForm() {
 
     async function redirectIfAdmin() {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
+        const access = await resolveAdminAccess();
+        if (cancelled) return;
 
-        if (!session?.user || session.user.is_anonymous) {
-          if (!cancelled) setChecking(false);
-          return;
-        }
-
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (!user || user.is_anonymous || userError) {
-          if (userError) logDevOperationError("admin login session check", userError);
-          if (!cancelled) setChecking(false);
-          return;
-        }
-
-        const { isAdmin } = await checkIsAdministrator(supabase, user.id);
-        if (!cancelled && isAdmin) {
+        if (access.kind === "admin") {
           router.replace("/admin");
           return;
         }
       } catch (error) {
         logDevOperationError("admin login session check", error);
+      } finally {
+        if (!cancelled) setChecking(false);
       }
-
-      if (!cancelled) setChecking(false);
     }
 
     void redirectIfAdmin();
@@ -59,8 +45,8 @@ export function AdminLoginForm() {
     return () => {
       cancelled = true;
     };
-    // Run once. Re-running when `router` changes can cancel getUser and
-    // leave this screen on “Checking sign-in…”.
+    // Run once. Re-running when `router` changes can cancel in-flight auth
+    // checks and leave this screen on “Checking sign-in…”.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -77,11 +63,10 @@ export function AdminLoginForm() {
     setPending(true);
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: nextEmail,
+      const { data, error } = await replaceSessionWithPassword(
+        nextEmail,
         password,
-      });
+      );
 
       setPassword("");
 
@@ -91,7 +76,24 @@ export function AdminLoginForm() {
         return;
       }
 
-      await checkIsAdministrator(supabase, data.user.id);
+      if (data.user.is_anonymous) {
+        logDevOperationError("admin sign in", {
+          message: "session remained anonymous",
+        });
+        setErrorMessage(GENERIC_ERROR);
+        return;
+      }
+
+      const { isAdmin } = await checkIsAdministrator(
+        createSupabaseBrowserClient(),
+        data.user.id,
+      );
+
+      if (!isAdmin) {
+        setErrorMessage(FORBIDDEN_ERROR);
+        return;
+      }
+
       router.replace("/admin");
     } catch (error) {
       logDevOperationError("admin sign in", error);

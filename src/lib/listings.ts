@@ -10,7 +10,6 @@ import {
   type ListingDetail,
   type ListingFilters,
 } from "./types";
-import type { ListingFormValues } from "./listing-form";
 
 type ListingRow = {
   id: string;
@@ -34,8 +33,6 @@ const LISTING_ID_PATTERN =
 export function isListingId(value: string) {
   return LISTING_ID_PATTERN.test(value);
 }
-
-export type NewListing = ListingFormValues;
 
 export async function getListings(
   filters: ListingFilters = {},
@@ -114,28 +111,6 @@ export const getApprovedListing = cache(
     return listing;
   },
 );
-
-export async function addListingRecord(listing: NewListing) {
-  const supabase = createSupabaseServerClient();
-  const { error } = await supabase.from("listings").insert({
-    place_name: listing.placeName,
-    city: listing.city,
-    listing_type: listing.type,
-    days: listing.days,
-    start_time: listing.startTime,
-    end_time: listing.endTime || null,
-    description: listing.description,
-    source_url: listing.sourceUrl,
-    street_address: listing.streetAddress,
-    zip_code: listing.zipCode,
-    status: "pending",
-  });
-
-  if (error) {
-    logDevOperationError("submit listing", error);
-    throw new Error("Could not submit listing.");
-  }
-}
 
 export { isCity, isDay, isListingType } from "./types";
 

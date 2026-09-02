@@ -12,16 +12,22 @@ export function Header() {
             Hampton Roads this week
           </p>
         </Link>
-        <nav className="flex items-center gap-2 text-sm">
+        <nav className="flex flex-wrap items-center justify-end gap-2 text-sm">
           <Link
             href="/"
-            className="rounded-full px-3 py-1.5 text-[var(--ink)] hover:bg-[var(--wash)]"
+            className="rounded-full px-3 py-1.5 text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2"
           >
             This week
           </Link>
           <Link
+            href="/account"
+            className="rounded-full px-3 py-1.5 text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2"
+          >
+            My points
+          </Link>
+          <Link
             href="/add"
-            className="rounded-full bg-[var(--amber)] px-3 py-1.5 font-medium text-[var(--ink)] hover:bg-[var(--amber-hover)]"
+            className="rounded-full bg-[var(--amber)] px-3 py-1.5 font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--amber-hover)] focus-visible:ring-2"
           >
             Add a listing
           </Link>

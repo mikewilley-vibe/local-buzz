@@ -2,7 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
-import { checkIsAdministrator } from "@/lib/admin";
+import { resolveAdminAccess } from "@/lib/admin-access";
 import { logDevOperationError } from "@/lib/dev-log";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PendingListingsPanel } from "./PendingListingsPanel";
@@ -29,36 +29,20 @@ export function AdminDashboard() {
 
     async function gateAccess() {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-
+        const access = await resolveAdminAccess();
         if (cancelled) return;
 
-        if (!session?.user || session.user.is_anonymous) {
-          router.replace("/admin/login");
+        if (access.kind === "admin") {
+          setGate("ready");
           return;
         }
 
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (cancelled) return;
-
-        if (userError || !user || user.is_anonymous) {
-          logDevOperationError("admin dashboard access check", userError);
-          router.replace("/admin/login");
+        if (access.kind === "user") {
+          setGate("forbidden");
           return;
         }
 
-        const { isAdmin } = await checkIsAdministrator(supabase, user.id);
-
-        if (cancelled) return;
-
-        setGate(isAdmin ? "ready" : "forbidden");
+        router.replace("/admin/login");
       } catch (error) {
         logDevOperationError("admin dashboard access check", error);
         if (!cancelled) router.replace("/admin/login");
@@ -70,8 +54,8 @@ export function AdminDashboard() {
     return () => {
       cancelled = true;
     };
-    // Run once. Re-running when `router` changes cancels getUser and can
-    // leave this screen on “Checking administrator access…”.
+    // Run once. Re-running when `router` changes cancels in-flight auth
+    // checks and can leave this screen on “Checking administrator access…”.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

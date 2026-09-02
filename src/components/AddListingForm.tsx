@@ -1,22 +1,69 @@
 "use client";
 
-import { useActionState } from "react";
-import { addListing, type FormState } from "@/app/actions";
+import { useState, type FormEvent } from "react";
+import { useRouter } from "next/navigation";
+import { revalidatePublicListings } from "@/app/actions";
 import { ListingFormFields } from "@/components/ListingFormFields";
+import { listingFormToUpdate, parseListingFormData } from "@/lib/listing-form";
+import { logDevOperationError } from "@/lib/dev-log";
+import { ensureAnonymousUser } from "@/lib/supabase/client";
 
-const initialState: FormState = null;
+const GENERIC_ERROR = "Could not submit listing.";
 
 export function AddListingForm() {
-  const [state, formAction, pending] = useActionState(addListing, initialState);
+  const router = useRouter();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setErrorMessage(null);
+
+    const parsed = parseListingFormData(new FormData(event.currentTarget));
+    if ("error" in parsed) {
+      setErrorMessage(parsed.error);
+      return;
+    }
+
+    setPending(true);
+    try {
+      const { supabase, userId } = await ensureAnonymousUser();
+      if (!userId) {
+        setErrorMessage(GENERIC_ERROR);
+        return;
+      }
+
+      const { error } = await supabase.from("listings").insert({
+        ...listingFormToUpdate(parsed.listing),
+        status: "pending",
+        confirmation_count: 0,
+        last_verified_at: null,
+      });
+
+      if (error) {
+        logDevOperationError("submit listing", error);
+        setErrorMessage(GENERIC_ERROR);
+        return;
+      }
+
+      await revalidatePublicListings();
+      router.push("/?submitted=1");
+    } catch (error) {
+      logDevOperationError("submit listing", error);
+      setErrorMessage(GENERIC_ERROR);
+    } finally {
+      setPending(false);
+    }
+  }
 
   return (
-    <form action={formAction} className="grid gap-5">
-      {state?.error ? (
+    <form className="grid gap-5" onSubmit={(event) => void onSubmit(event)}>
+      {errorMessage ? (
         <p
           className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
           role="alert"
         >
-          {state.error}
+          {errorMessage}
         </p>
       ) : null}
 

@@ -1,8 +1,1 @@
-"use server";
-
-import { revalidatePath } from "next/cache";
-
-export async function revalidatePublicListings() {
-  revalidatePath("/");
-  revalidatePath("/listings", "layout");
-}
+export { revalidatePublicListings } from "@/app/actions";
