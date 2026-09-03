@@ -37,7 +37,7 @@ export type DayOfWeek = (typeof DAYS)[number];
 export type Listing = {
   id: string;
   placeName: string;
-  city: City;
+  city: City | null;
   type: ListingType;
   days: DayOfWeek[];
   startTime: string;
@@ -53,7 +53,7 @@ export type Listing = {
 export type ListingDetail = Listing;
 
 export type ListingFilters = {
-  city?: City;
+  cities?: City[];
   type?: ListingType;
   zip?: string;
 };
@@ -82,6 +82,26 @@ export function isReportReason(value: string): value is ReportReason {
 
 export function isCity(value: string): value is City {
   return (CITIES as readonly string[]).includes(value);
+}
+
+export function canonicalizeCity(value: string): City | undefined {
+  const normalized = value.trim().replace(/\s+/g, " ");
+  if (!normalized) return undefined;
+  if (isCity(normalized)) return normalized;
+  const lower = normalized.toLowerCase();
+  return CITIES.find((city) => city.toLowerCase() === lower);
+}
+
+export function parseCityValues(value: string | string[] | undefined): City[] {
+  const raw = Array.isArray(value) ? value : value ? [value] : [];
+  const matched = new Set<City>();
+
+  for (const item of raw) {
+    const city = canonicalizeCity(String(item ?? ""));
+    if (city) matched.add(city);
+  }
+
+  return CITIES.filter((city) => matched.has(city));
 }
 
 export function isListingType(value: string): value is ListingType {

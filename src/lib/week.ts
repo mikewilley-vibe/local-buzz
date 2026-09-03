@@ -1,25 +1,31 @@
-import { DAYS, type DayOfWeek } from "./types";
+import { DAYS, DAY_LABELS, isDay, type DayOfWeek, type Listing } from "./types";
 
-const EASTERN = "America/New_York";
+export const EASTERN_TIME_ZONE = "America/New_York";
 
 export function easternDateParts(date = new Date()) {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: EASTERN,
+    timeZone: EASTERN_TIME_ZONE,
     year: "numeric",
     month: "numeric",
     day: "numeric",
-    weekday: "short",
+    weekday: "long",
   }).formatToParts(date);
 
   const get = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? "";
 
+  const weekdayName = get("weekday").toLowerCase();
+
   return {
     year: Number(get("year")),
     month: Number(get("month")),
     day: Number(get("day")),
-    weekday: get("weekday"),
+    weekday: isDay(weekdayName) ? weekdayName : ("monday" as DayOfWeek),
   };
+}
+
+export function easternTodayDay(date = new Date()): DayOfWeek {
+  return easternDateParts(date).weekday;
 }
 
 export function easternCalendarUtc(date = new Date()) {
@@ -27,19 +33,10 @@ export function easternCalendarUtc(date = new Date()) {
   return Date.UTC(parts.year, parts.month - 1, parts.day);
 }
 
-const WEEKDAY_TO_DAY: Record<string, DayOfWeek> = {
-  Mon: "monday",
-  Tue: "tuesday",
-  Wed: "wednesday",
-  Thu: "thursday",
-  Fri: "friday",
-  Sat: "saturday",
-  Sun: "sunday",
-};
-
 export type WeekDay = {
   key: DayOfWeek;
   label: string;
+  headingDate: string;
   dateLabel: string;
   dayNumber: number;
   isToday: boolean;
@@ -63,31 +60,48 @@ function formatDateLabel(year: number, month: number, day: number) {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
+function formatHeadingDate(year: number, month: number, day: number) {
+  return new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+}
+
 export function getThisWeek(): WeekDay[] {
   const today = easternDateParts();
-  const todayKey = WEEKDAY_TO_DAY[today.weekday] ?? "monday";
+  const todayKey = today.weekday;
   const todayIndex = DAYS.indexOf(todayKey);
   const mondayOffset = -todayIndex;
-
-  const longLabels: Record<DayOfWeek, string> = {
-    monday: "Monday",
-    tuesday: "Tuesday",
-    wednesday: "Wednesday",
-    thursday: "Thursday",
-    friday: "Friday",
-    saturday: "Saturday",
-    sunday: "Sunday",
-  };
 
   return DAYS.map((key, index) => {
     const date = addDays(today.year, today.month, today.day, mondayOffset + index);
     return {
       key,
-      label: longLabels[key],
+      label: DAY_LABELS[key],
+      headingDate: formatHeadingDate(date.year, date.month, date.day),
       dateLabel: formatDateLabel(date.year, date.month, date.day),
       dayNumber: date.day,
       isToday: key === todayKey,
     };
+  });
+}
+
+export function compareListingsByStartTime(left: Listing, right: Listing) {
+  const leftTime = left.startTime.trim();
+  const rightTime = right.startTime.trim();
+  if (!leftTime && !rightTime) {
+    return left.placeName.localeCompare(right.placeName, "en", {
+      sensitivity: "base",
+    });
+  }
+  if (!leftTime) return 1;
+  if (!rightTime) return -1;
+  const timeOrder = leftTime.localeCompare(rightTime);
+  if (timeOrder !== 0) return timeOrder;
+  return left.placeName.localeCompare(right.placeName, "en", {
+    sensitivity: "base",
   });
 }
 
@@ -105,7 +119,7 @@ export function formatVerifiedDate(value: string) {
 
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "long",
-    timeZone: EASTERN,
+    timeZone: EASTERN_TIME_ZONE,
   }).format(date);
 }
 
@@ -121,7 +135,7 @@ export function formatDisplayDate(value: string) {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
-    timeZone: EASTERN,
+    timeZone: EASTERN_TIME_ZONE,
   }).format(date);
 }
 

@@ -1,8 +1,15 @@
+import { AgendaCalendar } from "@/components/AgendaCalendar";
+import { CalendarToolbar } from "@/components/CalendarToolbar";
 import { ListingFiltersBar } from "@/components/ListingFilters";
 import { WeekCalendar } from "@/components/WeekCalendar";
-import { hasSubmittedConfirmation, parseListingFilters } from "@/lib/filters";
+import {
+  formatSelectedArea,
+  hasSubmittedConfirmation,
+  parseListingFilters,
+} from "@/lib/filters";
 import { getListings } from "@/lib/listings";
-import { getThisWeek } from "@/lib/week";
+import { DAY_LABELS } from "@/lib/types";
+import { easternTodayDay, getThisWeek } from "@/lib/week";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -14,13 +21,27 @@ export default async function Home({ searchParams }: PageProps<"/">) {
   const submitted = hasSubmittedConfirmation(params);
   const filters = parseListingFilters(params);
   const listings = await getListings({
-    city: filters.city,
+    cities: filters.cities,
     type: filters.type,
     zip: filters.zip,
   });
   const week = getThisWeek();
-  const listingCountLabel =
-    listings.length === 1 ? "1 listing this week" : `${listings.length} listings this week`;
+  const selectedDay = filters.day;
+  const visibleDays = selectedDay
+    ? week.filter((day) => day.key === selectedDay)
+    : week;
+  const visibleListings = selectedDay
+    ? listings.filter((listing) => listing.days.includes(selectedDay))
+    : listings;
+  const count = visibleListings.length;
+  const areaLabel = formatSelectedArea(filters.cities);
+  const listingCountLabel = selectedDay
+    ? count === 1
+      ? `1 listing for ${DAY_LABELS[selectedDay]}`
+      : `${count} listings for ${DAY_LABELS[selectedDay]}`
+    : count === 1
+      ? "1 listing this week"
+      : `${count} listings this week`;
 
   return (
     <div className="grid gap-8">
@@ -49,7 +70,21 @@ export default async function Home({ searchParams }: PageProps<"/">) {
 
       <div className="grid gap-3">
         <ListingFiltersBar filters={filters} submitted={submitted} />
-        <p className="text-sm text-[var(--muted)]">{listingCountLabel}</p>
+        <CalendarToolbar
+          filters={filters}
+          submitted={submitted}
+          today={easternTodayDay()}
+        />
+        <div className="grid gap-1">
+          <p className="text-sm text-[var(--muted)]">{listingCountLabel}</p>
+          <p className="text-sm text-[var(--ink)]">Area: {areaLabel}</p>
+          {visibleListings.length > 0 ? (
+            <p className="text-sm text-[var(--muted)]">
+              Repeating listings count once, even if they appear under more than
+              one day.
+            </p>
+          ) : null}
+        </div>
       </div>
 
       {listings.length === 0 ? (
@@ -58,7 +93,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           role="status"
         >
           <p className="font-display text-xl text-[var(--ink)]">
-            No buzz found for these filters yet.
+            No listings match the active filters.
           </p>
           <p className="mt-2 text-sm text-[var(--muted)]">
             Know a special or event that belongs here?
@@ -70,8 +105,31 @@ export default async function Home({ searchParams }: PageProps<"/">) {
             Add a listing
           </Link>
         </div>
+      ) : visibleListings.length === 0 ? (
+        <div
+          className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-8 text-center"
+          role="status"
+        >
+          <p className="font-display text-xl text-[var(--ink)]">
+            No listings for the selected day.
+          </p>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            These are weekly recurring listings. Try All week or another day.
+          </p>
+        </div>
+      ) : filters.view === "week" ? (
+        <WeekCalendar week={visibleDays} listings={listings} />
+      ) : filters.view === "agenda" ? (
+        <AgendaCalendar week={visibleDays} listings={listings} />
       ) : (
-        <WeekCalendar week={week} listings={listings} />
+        <>
+          <div className="md:hidden">
+            <AgendaCalendar week={visibleDays} listings={listings} />
+          </div>
+          <div className="hidden md:block">
+            <WeekCalendar week={visibleDays} listings={listings} />
+          </div>
+        </>
       )}
     </div>
   );

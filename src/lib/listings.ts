@@ -45,11 +45,7 @@ export async function getListings(
     )
     .eq("status", "approved");
 
-  if (filters.city) {
-    query = query.eq("city", filters.city);
-  }
-
-  if (filters.type) {
+  if (filters.type && isListingType(filters.type)) {
     query = query.eq("listing_type", filters.type);
   }
 
@@ -60,22 +56,35 @@ export async function getListings(
     throw new Error("Could not load listings.");
   }
 
+  const seen = new Set<string>();
   const listings = (data ?? []).flatMap((row) => {
     try {
       const listing = mapListingRow(row as ListingRow);
-      return listing ? [listing] : [];
+      if (!listing || seen.has(listing.id)) return [];
+      seen.add(listing.id);
+      return [listing];
     } catch (mappingError) {
       logDevOperationError("map approved listing", mappingError);
       return [];
     }
   });
 
+  const cities = (filters.cities ?? []).filter(isCity);
+  const cityFiltered =
+    cities.length === 0
+      ? listings
+      : listings.filter(
+          (listing) => listing.city !== null && cities.includes(listing.city),
+        );
+
   if (!filters.zip) {
-    return listings;
+    return cityFiltered;
   }
 
   const zip = filters.zip;
-  return listings.filter((listing) => listingMatchesZipFilter(listing.zipCode, zip));
+  return cityFiltered.filter((listing) =>
+    listingMatchesZipFilter(listing.zipCode, zip),
+  );
 }
 
 export const getApprovedListing = cache(
@@ -115,12 +124,20 @@ export const getApprovedListing = cache(
 export { isCity, isDay, isListingType } from "./types";
 
 function mapListingRow(row: ListingRow): Listing | null {
-  const city = row.city?.trim() ?? "";
+  const cityRaw = row.city?.trim() ?? "";
   const listingType = row.listing_type?.trim() ?? "";
 
-  if (!isCity(city) || !isListingType(listingType)) {
+  if (!isListingType(listingType)) {
     logDevOperationError(
-      "skip listing with unrecognized city or type",
+      "skip listing with unrecognized type",
+      { message: row.place_name ?? row.id },
+    );
+    return null;
+  }
+
+  if (cityRaw && !isCity(cityRaw)) {
+    logDevOperationError(
+      "skip listing with unrecognized city",
       { message: row.place_name ?? row.id },
     );
     return null;
@@ -138,7 +155,7 @@ function mapListingRow(row: ListingRow): Listing | null {
   return {
     id: row.id,
     placeName: row.place_name,
-    city,
+    city: isCity(cityRaw) ? cityRaw : null,
     type: listingType,
     days,
     startTime: row.start_time ?? "",

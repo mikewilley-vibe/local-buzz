@@ -8,6 +8,7 @@ import { DirectionsLink } from "@/components/DirectionsLink";
 import { getApprovedListing } from "@/lib/listings";
 import { formatFullLocation } from "@/lib/location";
 import { DAY_LABELS, TYPE_LABELS } from "@/lib/types";
+import { venueSlugFromListing } from "@/lib/venues";
 import { formatTimeRange } from "@/lib/week";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,7 @@ export async function generateMetadata({
 
   return {
     title: `${listing.placeName} — Local Buzz`,
-    description: `${TYPE_LABELS[listing.type]} in ${listing.city}. ${listing.description}`,
+    description: `${TYPE_LABELS[listing.type]}${listing.city ? ` in ${listing.city}` : ""}. ${listing.description}`,
   };
 }
 
@@ -69,7 +70,9 @@ export default async function ListingDetailPage({
         {locationLabel ? (
           <p className="mt-2 text-[var(--muted)]">{locationLabel}</p>
         ) : (
-          <p className="mt-2 text-[var(--muted)]">{listing.city}</p>
+          <p className="mt-2 text-[var(--muted)]">
+            {listing.city ?? "Hampton Roads"}
+          </p>
         )}
         <div className="mt-3">
           <FreshnessBadge lastVerifiedAt={listing.lastVerifiedAt} />
@@ -85,6 +88,14 @@ export default async function ListingDetailPage({
             />
           </div>
         ) : null}
+        <p className="mt-2">
+          <Link
+            href={`/venues/${venueSlugFromListing(listing)}`}
+            className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--amber-deep)] outline-none ring-[var(--amber)] hover:underline focus-visible:ring-2"
+          >
+            View venue
+          </Link>
+        </p>
       </header>
 
       <p className="text-base leading-relaxed text-[var(--ink)]">

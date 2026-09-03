@@ -20,6 +20,12 @@ export function Header() {
             This week
           </Link>
           <Link
+            href="/venues"
+            className="rounded-full px-3 py-1.5 text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2"
+          >
+            Venues
+          </Link>
+          <Link
             href="/account"
             className="rounded-full px-3 py-1.5 text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2"
           >
