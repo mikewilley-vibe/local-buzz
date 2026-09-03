@@ -6,7 +6,7 @@ import { listingPreview } from "@/lib/admin";
 import { logDevOperationError } from "@/lib/dev-log";
 import { seedFromListingRow } from "@/lib/listing-form";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
-import { formatDisplayDate } from "@/lib/week";
+import { formatDisplayDate, formatVerifiedDate } from "@/lib/week";
 import { DirectionsLink } from "@/components/DirectionsLink";
 import {
   AdminListingEditor,
@@ -21,21 +21,33 @@ const SAVE_SUCCESS = "Listing updated. It is still pending review.";
 type PendingListing = {
   id: string;
   submittedLabel: string | null;
+  sourceCheckedLabel: string | null;
+  isStaffSourced: boolean;
+  needsPhoneConfirm: boolean;
   preview: ReturnType<typeof listingPreview>;
   values: ReturnType<typeof seedFromListingRow>;
 };
 
 type ListingAction = "approve" | "reject";
 
-function mapPendingRow(row: SavedListingRow & {
-  submitted_at?: string | null;
-  created_at?: string | null;
-}): PendingListing {
+function mapPendingRow(
+  row: SavedListingRow & {
+    submitted_at?: string | null;
+    created_at?: string | null;
+    source_checked_at?: string | null;
+    is_staff_sourced?: boolean | null;
+  },
+  reviewNote?: string | null,
+): PendingListing {
+  const note = reviewNote ?? "";
   return {
     id: row.id,
     preview: listingPreview(row),
     values: seedFromListingRow(row),
     submittedLabel: formatDisplayDate(row.submitted_at ?? row.created_at ?? ""),
+    sourceCheckedLabel: formatVerifiedDate(row.source_checked_at ?? ""),
+    isStaffSourced: Boolean(row.is_staff_sourced),
+    needsPhoneConfirm: note.toLowerCase().includes("phone-confirm before approval"),
   };
 }
 
@@ -64,7 +76,7 @@ export function PendingListingsPanel({
         const { data, error } = await supabase
           .from("listings")
           .select(
-            "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code, submitted_at, created_at",
+            "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, source_checked_at, is_staff_sourced, street_address, zip_code, submitted_at, created_at",
           )
           .eq("status", "pending")
           .order("created_at", { ascending: true });
@@ -78,7 +90,30 @@ export function PendingListingsPanel({
           return;
         }
 
-        setListings((data ?? []).map((row) => mapPendingRow(row)));
+        const rows = data ?? [];
+        const ids = rows.map((row) => row.id);
+        const notesByListing = new Map<string, string>();
+
+        if (ids.length > 0) {
+          const { data: notes, error: notesError } = await supabase
+            .from("listing_staff_metadata")
+            .select("listing_id, review_note")
+            .in("listing_id", ids);
+
+          if (notesError) {
+            logDevOperationError("load listing staff metadata", notesError);
+          } else {
+            for (const note of notes ?? []) {
+              if (note.listing_id && note.review_note) {
+                notesByListing.set(note.listing_id, note.review_note);
+              }
+            }
+          }
+        }
+
+        setListings(
+          rows.map((row) => mapPendingRow(row, notesByListing.get(row.id))),
+        );
       } catch (error) {
         logDevOperationError("load pending listings", error);
         if (!cancelled) {
@@ -223,7 +258,26 @@ export function PendingListingsPanel({
                     <dd className="text-[var(--muted)]">{listing.submittedLabel}</dd>
                   </div>
                 ) : null}
+                {listing.isStaffSourced ? (
+                  <div>
+                    <dt className="font-medium text-[var(--ink)]">Attribution</dt>
+                    <dd className="text-[var(--muted)]">
+                      Staff-sourced · no contributor points
+                    </dd>
+                  </div>
+                ) : null}
+                {listing.sourceCheckedLabel ? (
+                  <div>
+                    <dt className="font-medium text-[var(--ink)]">Source checked</dt>
+                    <dd className="text-[var(--muted)]">{listing.sourceCheckedLabel}</dd>
+                  </div>
+                ) : null}
               </dl>
+              {listing.needsPhoneConfirm ? (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-800">
+                  Phone-confirm before approval.
+                </p>
+              ) : null}
               <p className="text-sm leading-relaxed text-[var(--ink)]">
                 {listing.preview.description}
               </p>
@@ -235,8 +289,11 @@ export function PendingListingsPanel({
                     rel="noopener noreferrer"
                     target="_blank"
                   >
-                    {listing.preview.sourceUrl}
+                    Open source
                   </a>
+                  <span className="mt-1 block break-all text-[var(--muted)]">
+                    {listing.preview.sourceUrl}
+                  </span>
                 </p>
               ) : null}
 

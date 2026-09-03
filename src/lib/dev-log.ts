@@ -1,3 +1,11 @@
+export function logDevTiming(
+  stage: string,
+  metrics: Record<string, number>,
+) {
+  if (process.env.NODE_ENV !== "development") return;
+  console.info(`[Local Buzz] ${stage}`, metrics);
+}
+
 export function logDevOperationError(operation: string, error: unknown) {
   logDevIssue(operation, error);
 }

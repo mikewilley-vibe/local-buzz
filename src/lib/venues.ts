@@ -3,6 +3,7 @@ import { getListings } from "@/lib/listings";
 import { formatFullLocation, type ListingLocation } from "@/lib/location";
 import { sha256Hex } from "@/lib/sha256";
 import { DAYS, DAY_LABELS, type DayOfWeek, type Listing } from "@/lib/types";
+import { compareListingsByStartTime } from "@/lib/week";
 
 export const VENUE_STATE = "Virginia";
 
@@ -167,7 +168,7 @@ export function groupVenueListingsByDay(listings: Listing[]): VenueDayGroup[] {
     label: DAY_LABELS[key],
     listings: listings
       .filter((listing) => listing.days.includes(key))
-      .sort((left, right) => left.startTime.localeCompare(right.startTime)),
+      .sort(compareListingsByStartTime),
   }));
 }
 

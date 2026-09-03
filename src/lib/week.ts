@@ -88,9 +88,15 @@ export function getThisWeek(): WeekDay[] {
   });
 }
 
+function normalizeClock(value: string | null | undefined) {
+  const text = (value ?? "").trim();
+  if (!text || text === "null" || text === "undefined") return "";
+  return text;
+}
+
 export function compareListingsByStartTime(left: Listing, right: Listing) {
-  const leftTime = left.startTime.trim();
-  const rightTime = right.startTime.trim();
+  const leftTime = normalizeClock(left.startTime);
+  const rightTime = normalizeClock(right.startTime);
   if (!leftTime && !rightTime) {
     return left.placeName.localeCompare(right.placeName, "en", {
       sensitivity: "base",
@@ -105,12 +111,30 @@ export function compareListingsByStartTime(left: Listing, right: Listing) {
   });
 }
 
-export function formatTimeRange(startTime: string, endTime: string) {
+export function formatTimeRange(
+  startTime: string | null | undefined,
+  endTime: string | null | undefined,
+) {
   const start = formatTime(startTime);
-  const end = endTime ? formatTime(endTime) : "";
+  const end = formatTime(endTime);
   if (start && end) return `${start} – ${end}`;
   if (start) return start;
   return "";
+}
+
+export function mentionsAllDay(value: string | null | undefined) {
+  return /\ball[-\s]?day\b/i.test(value ?? "");
+}
+
+export function listingScheduleLabel(
+  startTime: string | null | undefined,
+  endTime: string | null | undefined,
+  description?: string | null,
+) {
+  const range = formatTimeRange(startTime, endTime);
+  if (range) return range;
+  if (mentionsAllDay(description)) return "All day";
+  return "Time not listed";
 }
 
 export function formatVerifiedDate(value: string) {
@@ -139,12 +163,13 @@ export function formatDisplayDate(value: string) {
   }).format(date);
 }
 
-function formatTime(value: string) {
-  if (!value) return "";
-  const [hoursRaw, minutesRaw] = value.split(":");
+function formatTime(value: string | null | undefined) {
+  const text = normalizeClock(value);
+  if (!text) return "";
+  const [hoursRaw, minutesRaw] = text.split(":");
   const hours = Number(hoursRaw);
   const minutes = Number(minutesRaw);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return value;
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return "";
 
   const period = hours >= 12 ? "p.m." : "a.m.";
   const hour12 = hours % 12 === 0 ? 12 : hours % 12;

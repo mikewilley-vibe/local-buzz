@@ -47,7 +47,7 @@ export function isHttpUrl(value: string) {
 }
 
 export function timeInputValue(value: string | null | undefined) {
-  if (!value) return "";
+  if (!value || value === "null" || value === "undefined") return "";
   return value.slice(0, 5);
 }
 
@@ -83,7 +83,7 @@ export function listingFormToUpdate(listing: ListingFormValues) {
     city: listing.city,
     listing_type: listing.type,
     days: listing.days,
-    start_time: listing.startTime,
+    start_time: listing.startTime || null,
     end_time: listing.endTime || null,
     description: listing.description,
     source_url: listing.sourceUrl,

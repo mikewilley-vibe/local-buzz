@@ -2,7 +2,7 @@ import Link from "next/link";
 import { TYPE_LABELS, type Listing } from "@/lib/types";
 import { formatCityWithZip } from "@/lib/location";
 import { venueSlugFromListing } from "@/lib/venues";
-import { formatTimeRange } from "@/lib/week";
+import { listingScheduleLabel } from "@/lib/week";
 import { FreshnessBadge } from "./FreshnessBadge";
 
 export function ListingCard({
@@ -12,7 +12,11 @@ export function ListingCard({
   listing: Listing;
   compact?: boolean;
 }) {
-  const time = formatTimeRange(listing.startTime, listing.endTime);
+  const time = listingScheduleLabel(
+    listing.startTime,
+    listing.endTime,
+    listing.description,
+  );
   const href = `/listings/${listing.id}`;
   const venueHref = `/venues/${venueSlugFromListing(listing)}`;
   const cityLine = listing.city

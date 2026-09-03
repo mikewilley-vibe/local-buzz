@@ -9,7 +9,7 @@ import { getApprovedListing } from "@/lib/listings";
 import { formatFullLocation } from "@/lib/location";
 import { DAY_LABELS, TYPE_LABELS } from "@/lib/types";
 import { venueSlugFromListing } from "@/lib/venues";
-import { formatTimeRange } from "@/lib/week";
+import { listingScheduleLabel } from "@/lib/week";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -41,7 +41,11 @@ export default async function ListingDetailPage({
     notFound();
   }
 
-  const time = formatTimeRange(listing.startTime, listing.endTime);
+  const time = listingScheduleLabel(
+    listing.startTime,
+    listing.endTime,
+    listing.description,
+  );
   const days = listing.days.map((day) => DAY_LABELS[day]).join(", ");
   const locationLabel = formatFullLocation({
     streetAddress: listing.streetAddress,
@@ -110,7 +114,7 @@ export default async function ListingDetailPage({
         <div>
           <dt className="text-sm font-medium text-[var(--ink)]">Time</dt>
           <dd className="mt-1 text-sm text-[var(--muted)]">
-            {time || "Time not listed"}
+            {time}
           </dd>
         </div>
         {listing.sourceUrl ? (

@@ -5,7 +5,7 @@ import { DirectionsLink } from "@/components/DirectionsLink";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { TYPE_LABELS } from "@/lib/types";
 import { getApprovedVenueBySlug, groupVenueListingsByDay } from "@/lib/venues";
-import { formatTimeRange } from "@/lib/week";
+import { listingScheduleLabel } from "@/lib/week";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -91,7 +91,11 @@ export default async function VenuePage({
             </h2>
             <ul className="grid gap-2">
               {group.listings.map((listing) => {
-                const time = formatTimeRange(listing.startTime, listing.endTime);
+                const time = listingScheduleLabel(
+                  listing.startTime,
+                  listing.endTime,
+                  listing.description,
+                );
 
                 return (
                   <li key={`${listing.id}-${group.key}`}>
@@ -105,13 +109,7 @@ export default async function VenuePage({
                       <h3 className="mt-1 font-display text-lg leading-snug text-[var(--ink)]">
                         {listing.description}
                       </h3>
-                      {time ? (
-                        <p className="mt-1 text-sm text-[var(--muted)]">{time}</p>
-                      ) : (
-                        <p className="mt-1 text-sm text-[var(--muted)]">
-                          Time not listed
-                        </p>
-                      )}
+                      <p className="mt-1 text-sm text-[var(--muted)]">{time}</p>
                       <div className="mt-2">
                         <FreshnessBadge lastVerifiedAt={listing.lastVerifiedAt} />
                       </div>

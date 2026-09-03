@@ -9,7 +9,7 @@ import {
   normalizeListingDays,
 } from "./types";
 import { formatCityWithZip, formatFullLocation } from "./location";
-import { formatTimeRange } from "./week";
+import { listingScheduleLabel } from "./week";
 
 export async function checkIsAdministrator(
   supabase: SupabaseClient,
@@ -63,7 +63,11 @@ export function listingPreview(row: ListingRowPreview) {
     fullLocation: formatFullLocation(location),
     typeLabel: isListingType(type) ? TYPE_LABELS[type] : type || "Event",
     daysLabel: days.map((day) => DAY_LABELS[day]).join(", ") || "No days listed",
-    timeLabel: formatTimeRange(row.start_time ?? "", row.end_time ?? "") || "Time not listed",
+    timeLabel: listingScheduleLabel(
+      row.start_time,
+      row.end_time,
+      row.description,
+    ),
     description: row.description?.trim() || "No description",
     sourceUrl: row.source_url || null,
   };

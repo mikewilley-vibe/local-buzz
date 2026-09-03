@@ -17,7 +17,7 @@ type ListingRow = {
   city: string;
   listing_type: string;
   days: string[] | null;
-  start_time: string;
+  start_time: string | null;
   end_time: string | null;
   description: string;
   source_url: string | null;
@@ -49,7 +49,10 @@ export async function getListings(
     query = query.eq("listing_type", filters.type);
   }
 
-  const { data, error } = await query.order("start_time", { ascending: true });
+  const { data, error } = await query.order("start_time", {
+    ascending: true,
+    nullsFirst: false,
+  });
 
   if (error) {
     logDevOperationError("load approved listings", error);
@@ -158,8 +161,8 @@ function mapListingRow(row: ListingRow): Listing | null {
     city: isCity(cityRaw) ? cityRaw : null,
     type: listingType,
     days,
-    startTime: row.start_time ?? "",
-    endTime: row.end_time ?? "",
+    startTime: row.start_time && row.start_time !== "null" ? row.start_time : "",
+    endTime: row.end_time && row.end_time !== "null" ? row.end_time : "",
     description: row.description,
     sourceUrl: row.source_url,
     streetAddress: row.street_address?.trim() || null,

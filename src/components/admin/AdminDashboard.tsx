@@ -8,11 +8,12 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PendingListingsPanel } from "./PendingListingsPanel";
 import { PendingReportsPanel } from "./PendingReportsPanel";
 import { NeedsVerificationPanel } from "./NeedsVerificationPanel";
+import { StaffImportPanel } from "./StaffImportPanel";
 
 type Gate = "loading" | "forbidden" | "ready";
-type Tab = "listings" | "reports" | "verification";
+type Tab = "listings" | "reports" | "verification" | "import";
 
-const TABS: Tab[] = ["listings", "reports", "verification"];
+const TABS: Tab[] = ["listings", "reports", "verification", "import"];
 
 export function AdminDashboard() {
   const router = useRouter();
@@ -101,14 +102,17 @@ export function AdminDashboard() {
   const listingsTabId = `${tabId}-listings`;
   const reportsTabId = `${tabId}-reports`;
   const verificationTabId = `${tabId}-verification`;
+  const importTabId = `${tabId}-import`;
   const listingsPanelId = `${tabId}-listings-panel`;
   const reportsPanelId = `${tabId}-reports-panel`;
   const verificationPanelId = `${tabId}-verification-panel`;
+  const importPanelId = `${tabId}-import-panel`;
 
   function tabButtonId(next: Tab) {
     if (next === "listings") return listingsTabId;
     if (next === "reports") return reportsTabId;
-    return verificationTabId;
+    if (next === "verification") return verificationTabId;
+    return importTabId;
   }
 
   return (
@@ -122,7 +126,8 @@ export function AdminDashboard() {
             Admin dashboard
           </h1>
           <p className="mt-2 text-[var(--muted)]">
-            Review pending listings, change reports, and listings that need verification.
+            Review pending listings, change reports, listings that need
+            verification, and staff-sourced workbook imports.
           </p>
         </div>
         <button
@@ -199,6 +204,22 @@ export function AdminDashboard() {
         >
           Needs verification ({verificationCount})
         </button>
+        <button
+          id={importTabId}
+          type="button"
+          role="tab"
+          aria-selected={tab === "import"}
+          aria-controls={importPanelId}
+          tabIndex={tab === "import" ? 0 : -1}
+          onClick={() => setTab("import")}
+          className={`min-h-11 rounded-full px-4 py-2 text-sm font-medium outline-none ring-[var(--amber)] focus-visible:ring-2 ${
+            tab === "import"
+              ? "bg-[var(--amber)] text-[var(--ink)]"
+              : "border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--wash)]"
+          }`}
+        >
+          Staff import
+        </button>
       </div>
 
       <div
@@ -224,6 +245,14 @@ export function AdminDashboard() {
         hidden={tab !== "verification"}
       >
         <NeedsVerificationPanel onCountChange={setVerificationCount} />
+      </div>
+      <div
+        id={importPanelId}
+        role="tabpanel"
+        aria-labelledby={importTabId}
+        hidden={tab !== "import"}
+      >
+        <StaffImportPanel />
       </div>
     </div>
   );
