@@ -8,15 +8,23 @@ import {
 } from "@/lib/auth-return";
 import {
   DISPLAY_NAME_MAX,
+  EMAIL_RATE_LIMIT_MESSAGE,
   POINT_EVENT_DELTAS,
   POINT_EVENT_LABELS,
   displayNameFromMetadata,
   eventPoints,
   isEmailInUseError,
+  isEmailRateLimitError,
   isPointEventType,
   parseDisplayName,
   parseEmailAddress,
 } from "@/lib/contributor";
+import {
+  emptyContributionList,
+  loadContributorListings,
+  type ContributionList,
+} from "@/lib/contributions";
+import { ContributorContributions } from "@/components/ContributorContributions";
 import { logDevAuthIssue, logDevOperationError } from "@/lib/dev-log";
 import {
   ACCOUNT_SESSION_ERROR,
@@ -196,6 +204,12 @@ export function ContributorAccount() {
   const pending = Boolean(pendingKind);
   const [conflict, setConflict] = useState<Conflict>(null);
   const [contributor, setContributor] = useState<ContributorView | null>(null);
+  const [contributions, setContributions] = useState<ContributionList | null>(
+    null,
+  );
+  const [contributionsError, setContributionsError] = useState<string | null>(
+    null,
+  );
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
 
@@ -223,9 +237,25 @@ export function ContributorAccount() {
           const permanent = user && isPermanentUser(user) ? user : sessionUser;
           writeCheckEmail(false);
           const view = await loadContributor(permanent);
+          let nextContributions = emptyContributionList();
+          let nextContributionsError: string | null = null;
+          try {
+            nextContributions = await loadContributorListings(
+              supabase,
+              permanent,
+            );
+          } catch (listingError) {
+            nextContributionsError =
+              listingError instanceof Error
+                ? listingError.message
+                : "Couldn’t load your contributions. Please try again.";
+            nextContributions = emptyContributionList();
+          }
           if (cancelled) return;
           setContributor(view);
           setDisplayName(view.displayName);
+          setContributions(nextContributions);
+          setContributionsError(nextContributionsError);
           setGate("signed-in");
           return;
         }
@@ -283,6 +313,10 @@ export function ContributorAccount() {
     });
 
     if (error) {
+      if (isEmailRateLimitError(error)) {
+        setErrorMessage(EMAIL_RATE_LIMIT_MESSAGE);
+        return;
+      }
       logDevAuthIssue("send sign-in link", error);
     }
 
@@ -357,6 +391,10 @@ export function ContributorAccount() {
       }
 
       if (error) {
+        if (isEmailRateLimitError(error)) {
+          setErrorMessage(EMAIL_RATE_LIMIT_MESSAGE);
+          return;
+        }
         if (isEmailInUseError(error)) {
           setConflict({ email: address.email });
           setErrorMessage(
@@ -375,6 +413,10 @@ export function ContributorAccount() {
       );
       setGate("check-email");
     } catch (error) {
+      if (isEmailRateLimitError(error)) {
+        setErrorMessage(EMAIL_RATE_LIMIT_MESSAGE);
+        return;
+      }
       if (isAuthSessionMissing(error)) {
         logDevAuthIssue("link contributor email", error);
         setErrorMessage(ACCOUNT_SESSION_ERROR);
@@ -473,6 +515,8 @@ export function ContributorAccount() {
       await supabase.auth.signOut();
       writeCheckEmail(false);
       setContributor(null);
+      setContributions(null);
+      setContributionsError(null);
       setDisplayName("");
       setEmail("");
       setConflict(null);
@@ -675,6 +719,12 @@ export function ContributorAccount() {
               </dd>
             </div>
           </dl>
+
+          <ContributorContributions
+            list={contributions}
+            loading={contributions === null && !contributionsError}
+            errorMessage={contributionsError}
+          />
 
           <form className="grid gap-3" onSubmit={(event) => void onSaveName(event)}>
             <label className="grid gap-1.5">

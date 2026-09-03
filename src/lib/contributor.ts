@@ -64,6 +64,30 @@ export function isEmailInUseError(error: { message?: string; code?: string } | n
   );
 }
 
+export const EMAIL_RATE_LIMIT_MESSAGE =
+  "Too many verification emails were requested. Please wait before trying again.";
+
+export function isEmailRateLimitError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const record = error as {
+    status?: unknown;
+    statusCode?: unknown;
+    code?: unknown;
+    message?: unknown;
+  };
+  const status = Number(record.status ?? record.statusCode);
+  const code = String(record.code ?? "").toLowerCase();
+  const message = String(record.message ?? "").toLowerCase();
+  return (
+    status === 429 ||
+    code === "over_email_send_rate_limit" ||
+    code === "over_request_rate_limit" ||
+    message.includes("rate limit") ||
+    message.includes("too many requests") ||
+    message.includes("for security purposes")
+  );
+}
+
 export function eventPoints(eventType: string, points: number | null | undefined) {
   const value = Number(points);
   if (Number.isFinite(value) && value !== 0) return value;
