@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "db:types": "supabase gen types typescript --project-id vghnfdukyosvvoqrxmok --schema public > src/lib/database.types.ts",
+    "db:reset": "supabase db reset"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.112.4",
