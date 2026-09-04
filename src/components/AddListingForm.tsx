@@ -35,9 +35,6 @@ export function AddListingForm() {
 
       const { error } = await supabase.from("listings").insert({
         ...listingFormToUpdate(parsed.listing),
-        status: "pending",
-        confirmation_count: 0,
-        last_verified_at: null,
       });
 
       if (error) {

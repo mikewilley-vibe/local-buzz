@@ -1,0 +1,45 @@
+# Supabase local/development configuration for Local Buzz.
+#
+# This is a hand-authored starter. If you have the Supabase CLI installed you can
+# regenerate/upgrade it to your CLI version with `supabase init` (then re-apply the
+# Local Buzz specific settings below, especially auth).
+#
+# Used by `supabase start` / `supabase db reset` for LOCAL development only.
+# It does not affect the hosted production project.
+
+project_id = "local-buzz"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+# Match the production Postgres major version (project runs Postgres 17).
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["http://127.0.0.1:3000"]
+jwt_expiry = 3600
+enable_signup = true
+# Local Buzz relies on anonymous visitor sessions (confirmations, submissions).
+enable_anonymous_sign_ins = true
+
+[auth.email]
+enable_signup = true
+# Admin login uses email/password. Keep confirmations off locally for convenience.
+enable_confirmations = false

@@ -1,0 +1,86 @@
+name: Shared-backend hardening checks
+
+# Boots a DISPOSABLE Supabase stack (GitHub-hosted runner + Docker), rebuilds the
+# database from source (baseline + forward migrations + seed), and executes the
+# RLS / privilege / transactional-rollback checks documented in
+# docs/shared-backend-hardening.md. Never touches any hosted/production project.
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "src/lib/database.types.ts"
+      - ".github/workflows/shared-backend-hardening.yml"
+  workflow_dispatch:
+
+jobs:
+  hardening-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Pinned to match the `supabase` devDependency in package.json.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.116.0
+
+      - name: Start disposable Supabase stack
+        run: supabase start
+
+      # Clean rebuild from scratch: baseline -> the three incrementals ->
+      # 20260904010000_harden_public_api_and_staff_import -> seed.
+      - name: Clean rebuild (migrations + seed)
+        run: supabase db reset
+
+      - name: Run shared-backend hardening checks
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/shared-backend-hardening.sql 2>&1 | tee checks-output.txt
+
+          echo "----- summary -----"
+          grep -E 'CHECK [0-9]+' checks-output.txt || true
+
+          if grep -q 'FAIL' checks-output.txt; then
+            echo "::error::One or more hardening checks reported FAIL. See the log above."
+            exit 1
+          fi
+          echo "All hardening checks passed."
+
+      # Informational: prove the committed types match a fresh local generation.
+      # The new RPCs (get_public_listings, import_staff_listings, is_approved_listing)
+      # must be regenerated from the rebuilt local DB and committed on this branch.
+      - name: Regenerate types from the local database
+        run: supabase gen types typescript --local --schema public > /tmp/database.types.ts
+
+      # Informational only — the dedicated `db-contract.yml` workflow is the drift
+      # gate. Here we just surface whether the committed file needs regenerating.
+      - name: Report type drift (informational; PostgrestVersion excluded)
+        run: |
+          if ! diff -u \
+            <(grep -v 'PostgrestVersion' src/lib/database.types.ts) \
+            <(grep -v 'PostgrestVersion' /tmp/database.types.ts); then
+            echo "::warning::src/lib/database.types.ts is stale (missing the new RPCs). Download the 'database-types' artifact, or run 'npm run db:types' on a machine with Docker, and commit it."
+          else
+            echo "Types are in sync (ignoring PostgrestVersion metadata)."
+          fi
+
+      - name: Upload freshly generated types
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-types
+          path: /tmp/database.types.ts
+          if-no-files-found: ignore
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup

@@ -38,12 +38,7 @@ export async function getListings(
   filters: ListingFilters = {},
 ): Promise<Listing[]> {
   const supabase = createSupabaseServerClient();
-  let query = supabase
-    .from("listings")
-    .select(
-      "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code, confirmation_count, last_verified_at",
-    )
-    .eq("status", "approved");
+  let query = supabase.rpc("get_public_listings", { p_listing_id: null });
 
   if (filters.type && isListingType(filters.type)) {
     query = query.eq("listing_type", filters.type);
@@ -60,7 +55,8 @@ export async function getListings(
   }
 
   const seen = new Set<string>();
-  const listings = (data ?? []).flatMap((row) => {
+  const rows = (data ?? []) as ListingRow[];
+  const listings = rows.flatMap((row) => {
     try {
       const listing = mapListingRow(row as ListingRow);
       if (!listing || seen.has(listing.id)) return [];
@@ -98,12 +94,7 @@ export const getApprovedListing = cache(
 
     const supabase = createSupabaseServerClient();
     const { data, error } = await supabase
-      .from("listings")
-      .select(
-        "id, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code, confirmation_count, last_verified_at, status",
-      )
-      .eq("id", id)
-      .eq("status", "approved")
+      .rpc("get_public_listings", { p_listing_id: id })
       .maybeSingle();
 
     if (error) {
