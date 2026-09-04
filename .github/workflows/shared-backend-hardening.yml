@@ -43,7 +43,7 @@ jobs:
         run: |
           set -o pipefail
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
-            -v ON_ERROR_STOP=0 \
+            -v ON_ERROR_STOP=1 \
             -f supabase/tests/shared-backend-hardening.sql 2>&1 | tee checks-output.txt
 
           echo "----- summary -----"

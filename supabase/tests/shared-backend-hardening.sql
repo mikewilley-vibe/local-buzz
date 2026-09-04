@@ -10,8 +10,10 @@
 -- NEVER run this against a hosted/production project.
 -- It creates dev-only identities and synthetic rows, all inside the local DB.
 -- Each check prints "CHECK n: PASS/FAIL ...". Read the NOTICEs at the end.
+-- Intentional errors are caught inside DO blocks / pg_temp.expect(); any
+-- UNEXPECTED SQL error aborts the script (ON_ERROR_STOP on) so CI fails loudly.
 -- =============================================================================
-\set ON_ERROR_STOP off
+\set ON_ERROR_STOP on
 set client_min_messages to notice;
 
 -- ---- Dev-only identities ----------------------------------------------------
@@ -60,15 +62,60 @@ begin
   end if;
 end $$;
 
--- ---- 1) anon can execute get_public_listings, approved-only, fixed columns --
+-- ---- 1) get_public_listings: anon-executable, approved-only, no leaked cols -
 do $$
-declare n int;
+declare
+  v_pending_id uuid;
+  v_public_pending int;
+  v_public_total int;
+  v_public_seeded int;
+  v_row jsonb;
+  v_leaked text := null;
+  k text;
+  forbidden text[] := array[
+    'submitted_by', 'is_staff_sourced', 'source_checked_at', 'status',
+    'created_at', 'updated_at', 'submitted_at', 'review_note'];
 begin
-  set local role anon; set local request.jwt.claims = '{"role":"anon"}';
-  select count(*) into n from public.get_public_listings();
-  set local role postgres;
-  raise notice 'CHECK 1 : % (anon get_public_listings returned % rows; column set is fixed by the RETURNS TABLE signature: id, place_name, city, listing_type, days, start_time, end_time, description, source_url, street_address, zip_code, confirmation_count, last_verified_at).',
-    case when n >= 0 then 'PASS' else 'FAIL' end, n;
+  -- Synthetic pending row (created as postgres; bypasses RLS). It must never
+  -- surface through the public RPC.
+  insert into public.listings
+    (place_name, city, listing_type, days, description, status)
+  values
+    ('Check1 Pending', 'Suffolk', 'other', array['monday'], 'hidden pending', 'pending')
+  returning id into v_pending_id;
+
+  -- Execute the RPC as anon.
+  perform set_config('role', 'anon', true);
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+
+  select count(*) into v_public_pending
+    from public.get_public_listings(v_pending_id);        -- pending id => 0 rows
+  select count(*) into v_public_total
+    from public.get_public_listings();                    -- approved seed rows
+  select count(*) into v_public_seeded
+    from public.get_public_listings()
+    where place_name = 'Sample Taproom';                  -- a seeded approved row
+  select to_jsonb(t) into v_row
+    from public.get_public_listings() as t
+    order by t.id
+    limit 1;
+
+  perform set_config('role', 'postgres', true);
+
+  -- Ensure no contributor/staff/internal column leaks through the public shape.
+  foreach k in array forbidden loop
+    if v_row is not null and jsonb_exists(v_row, k) then
+      v_leaked := coalesce(v_leaked || ',', '') || k;
+    end if;
+  end loop;
+
+  raise notice 'CHECK 1 : % (anon RPC ok; pending-by-id rows=% [exp 0]; total public=% [exp >0]; seeded approved visible=% [exp 1]; leaked forbidden keys=% [exp none]).',
+    case when v_public_pending = 0
+              and v_public_total > 0
+              and v_public_seeded = 1
+              and v_leaked is null
+         then 'PASS' else 'FAIL' end,
+    v_public_pending, v_public_total, v_public_seeded, coalesce(v_leaked, 'none');
 end $$;
 
 -- ---- 2) anon cannot select or insert base listings --------------------------
@@ -111,6 +158,12 @@ select pg_temp.expect('CHECK 5c (set confirmation_count)','authenticated','bbbbb
 select pg_temp.expect('CHECK 5d (set is_staff_sourced)','authenticated','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
   $q$insert into public.listings(place_name,city,listing_type,days,description,is_staff_sourced)
      values('x','Norfolk','other',array['monday'],'d',true)$q$, true);
+select pg_temp.expect('CHECK 5e (set last_verified_at)','authenticated','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  $q$insert into public.listings(place_name,city,listing_type,days,description,last_verified_at)
+     values('x','Norfolk','other',array['monday'],'d', now())$q$, true);
+select pg_temp.expect('CHECK 5f (set source_checked_at)','authenticated','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  $q$insert into public.listings(place_name,city,listing_type,days,description,source_checked_at)
+     values('x','Norfolk','other',array['monday'],'d', now())$q$, true);
 
 -- ---- 6) contributor sees own rows, not another's ---------------------------
 do $$
@@ -212,4 +265,4 @@ end $$;
 -- ---- 11) app-level: verify calendar/details/venues load via get_public_listings
 -- Run `npm run dev` and load /, /listings/[id], /venues, and confirm the
 -- confirmation-count refresh works. (Not a SQL check.)
-raise notice 'CHECK 11 : verify in the running app (npm run dev) — public pages load via get_public_listings.';
+\echo 'CHECK 11 : verify in the running app (npm run dev) — public pages load via get_public_listings.'
