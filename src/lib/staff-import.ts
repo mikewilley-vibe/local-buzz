@@ -90,6 +90,17 @@ export type StaffImportInsert = {
   reviewNote: string | null;
 };
 
+export type StaffImportRpcRow = Omit<
+  StaffListingInsert,
+  | "status"
+  | "confirmation_count"
+  | "last_verified_at"
+  | "submitted_by"
+  | "is_staff_sourced"
+> & {
+  review_note: string | null;
+};
+
 export type StaffImportPreviewRow = {
   candidateId: string;
   workbookType: string;
@@ -571,6 +582,25 @@ export function uniqueStaffPreviewRows(preview: StaffImportPreview) {
     rows.push(row);
   }
   return rows;
+}
+
+export function staffImportRpcPayload(
+  rows: StaffImportInsert[],
+): StaffImportRpcRow[] {
+  return rows.map(({ listing, reviewNote }) => ({
+    place_name: listing.place_name,
+    city: listing.city,
+    listing_type: listing.listing_type,
+    days: listing.days,
+    start_time: listing.start_time,
+    end_time: listing.end_time,
+    description: listing.description,
+    source_url: listing.source_url,
+    source_checked_at: listing.source_checked_at,
+    street_address: listing.street_address,
+    zip_code: listing.zip_code,
+    review_note: reviewNote,
+  }));
 }
 
 export function staffImportDuplicateFilters(preview: StaffImportPreview) {

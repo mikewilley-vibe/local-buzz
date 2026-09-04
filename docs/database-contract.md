@@ -55,7 +55,7 @@ devDependency — run via `npx supabase ...` or the npm scripts).
 # 1. Start a disposable local Supabase stack
 npx supabase start
 
-# 2. Rebuild the database from source (baseline + the three incrementals + seed)
+# 2. Rebuild the database from source (baseline + forward migrations + seed)
 npm run db:reset          # => supabase db reset
 
 # 3. Regenerate TypeScript types from the LOCAL database
@@ -83,6 +83,7 @@ Fresh databases apply migrations in this order (filename timestamp order):
 2. `supabase/migrations/20260903003819_listings_select_own_submissions.sql`
 3. `supabase/migrations/20260903024646_staff_sourced_listings.sql`
 4. `supabase/migrations/20260903074515_listing_staff_metadata.sql`
+5. `supabase/migrations/20260904010000_harden_public_api_and_staff_import.sql`
 
 The three incrementals (2–4) carry the **exact remote-recorded versions** and the
 unchanged SQL from `main`. They are self-guarding (`IF NOT EXISTS`,
@@ -90,6 +91,8 @@ unchanged SQL from `main`. They are self-guarding (`IF NOT EXISTS`,
 after the baseline is a no-op that converges on the same final state. The
 `staff_review_note` column is transiently added by migration 3 and dropped by
 migration 4, matching production (the column does not exist in the final schema).
+Migration 5 is a forward-only correction that adds the safe public read boundary,
+tightens listing grants and submission policies, and makes staff imports atomic.
 
 ## 4. Local vs remote migration-history timestamps
 
@@ -167,14 +170,23 @@ history is secured — not added to this branch:
 grant insert, update on public.contributor_profiles to authenticated;
 ```
 
-## 8. Related security follow-ups (separate PRs)
+## 8. Shared-backend hardening in this branch
 
-Reproduced as-is in the baseline and flagged inline; to be tightened via forward
-migrations, never baked into the snapshot:
+The baseline continues to reproduce the captured production state. The separate
+`20260904010000_harden_public_api_and_staff_import.sql` forward migration:
 
-- `public.listings` grants `ALL` to `anon` and `authenticated` (RLS is the only
-  gate); anonymous callers can read every column of approved rows, including
-  `submitted_by`.
-- "Anyone can submit pending listings" targets role `PUBLIC` and does not require a
-  non-null submitter, allowing unattributed pending inserts.
-- `source_url` has no protocol constraint at the database boundary.
+- Replaces public base-table reads with the approved-only
+  `get_public_listings` RPC, which omits contributor and staff-only fields.
+- Removes anonymous privileges on `public.listings` and retains authenticated
+  base-table reads only for existing own-submission and administrator policies.
+- Restricts community inserts to authenticated sessions and user-editable
+  columns, while the database controls attribution, status, counters,
+  verification timestamps, and staff flags.
+- Adds the administrator-only `import_staff_listings` RPC so every listing and
+  optional staff note in one batch commits or rolls back together.
+
+The exact disposable-stack RLS and rollback checks are documented in
+`docs/shared-backend-hardening.md` and must pass before hosted deployment.
+
+Do not edit the baseline to hide these differences; it must remain an auditable
+production snapshot.
