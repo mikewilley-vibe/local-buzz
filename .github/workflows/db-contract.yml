@@ -1,0 +1,65 @@
+name: Database contract
+
+# Proves the source-controlled database contract rebuilds cleanly on a
+# DISPOSABLE Supabase stack (GitHub-hosted runner + Docker), and that the
+# committed TypeScript types match a fresh local generation. Never touches any
+# hosted/production project.
+
+on:
+  pull_request:
+    paths:
+      - "supabase/**"
+      - "src/lib/database.types.ts"
+      - ".github/workflows/db-contract.yml"
+  workflow_dispatch:
+
+jobs:
+  rebuild-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Pinned to match the `supabase` devDependency in package.json.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.116.0
+
+      - name: Start disposable Supabase stack
+        run: supabase start
+
+      # Clean rebuild from scratch: applies, in filename order,
+      #   20260902000000_baseline
+      #   -> 20260903003819_listings_select_own_submissions
+      #   -> 20260903024646_staff_sourced_listings
+      #   -> 20260903074515_listing_staff_metadata
+      # then supabase/seed.sql. Fails if any migration errors.
+      - name: Clean rebuild (baseline + incrementals + seed)
+        run: supabase db reset
+
+      - name: Regenerate types from the local database
+        run: supabase gen types typescript --local --schema public > /tmp/database.types.ts
+
+      # Compare against the committed file. The `PostgrestVersion` line is
+      # environment-dependent (differs between the local stack and the machine
+      # that generated the committed file), so it is excluded from the diff;
+      # every table/column/type/enum change is still caught.
+      - name: Fail on schema/type drift
+        run: |
+          if ! diff -u \
+            <(grep -v 'PostgrestVersion' src/lib/database.types.ts) \
+            <(grep -v 'PostgrestVersion' /tmp/database.types.ts); then
+            echo "::error::Generated types differ from src/lib/database.types.ts. Run 'npm run db:types' locally and commit the result."
+            exit 1
+          fi
+          echo "Types are in sync (ignoring PostgrestVersion metadata)."
+
+      - name: Stop Supabase
+        if: always()
+        run: supabase stop --no-backup

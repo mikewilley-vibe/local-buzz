@@ -62,6 +62,10 @@ npm run db:reset          # => supabase db reset
 npm run db:types          # => supabase gen types typescript --local --schema public > src/lib/database.types.ts
 ```
 
+This exact rebuild + type-drift check runs automatically on every PR that touches
+`supabase/**` or the generated types, via `.github/workflows/db-contract.yml`
+(disposable Supabase stack on a GitHub runner; never a hosted project).
+
 Notes:
 - `db:types` intentionally uses `--local` (no production project ref is hard-coded).
 - `src/lib/database.types.ts` is generated — do not hand-edit. It is not yet wired
@@ -107,6 +111,11 @@ migration exists only in the repository.
 Production's `supabase_migrations.schema_migrations` currently contains only the
 three incremental versions (`20260903003819`, `20260903024646`, `20260903074515`).
 It has **no** row for `20260902000000_baseline`.
+
+> This is **not** a blocker to merging this branch into `main` — merging does not
+> touch production. It only becomes relevant the first time someone runs
+> `supabase db push` against the production project, at which point the
+> reconciliation below must already have happened.
 
 Therefore, before any future `supabase db push` to production:
 
