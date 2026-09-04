@@ -70,6 +70,83 @@ Then verify with development-only identities and synthetic rows:
 
 Regenerate and commit `src/lib/database.types.ts` only from the successfully rebuilt local database. Do not hand-edit the generated file.
 
-## Production boundary
+## Production release record (2026-09-04)
 
-The migration is captured in source control only. Do not run `db push`, `migration repair`, or linked resets against production until the baseline-history issue is separately reconciled and the disposable-environment checks above pass.
+This section is a historical record of the release that put the hardening contract
+into production. The migrations themselves are immutable applied records and must
+not be split, renamed, or edited after the fact.
+
+### 1. The cutover that occurred
+
+- `20260904010000_harden_public_api_and_staff_import` and
+  `20260904120000_contributor_profiles_grant` were merged into `main` and applied
+  to the production project with `supabase db push`.
+- The push was immediately preceded by a one-time migration-history
+  reconciliation (`supabase migration repair --status applied 20260902000000`)
+  so the additive baseline was recorded as already-applied without re-running it.
+  Remote history now contains the baseline, the three `20260903*` incrementals,
+  and both `20260904*` migrations.
+- The production web frontend was cut over to the new RPC-based build in the same
+  window (a Vercel production promotion) so the deployed code and the database
+  contract matched.
+
+### 2. Production uses `get_public_listings`
+
+The live public calendar, listing detail pages, and venue pages read approved
+listings exclusively through `public.get_public_listings`. Post-cutover
+verification confirmed the homepage renders the full approved set and detail
+pages load through the RPC.
+
+### 3. Anonymous base-table access is removed
+
+The `anon` role has no privilege on `public.listings` in production. Public
+reads are only possible through `get_public_listings`, which returns approved
+rows and the documented columns only.
+
+### 4. Transactional staff imports are live
+
+The admin importer runs against `public.import_staff_listings` in production.
+Each call executes in a single transaction, so an invalid row rolls back the
+entire batch, including any staff-metadata writes.
+
+### 5. Rollback protection used during deployment
+
+Because the merge auto-deployed the new frontend slightly ahead of the database
+migration, the previous known-good production deployment was kept available and
+used for an instant rollback to keep the public site serving during the gap.
+The coordinated sequence was: restore the site via rollback, reconcile history,
+apply the migrations, then promote the new frontend and verify. At every point a
+prior production deployment remained available as an instant-rollback target.
+
+## Future release rule: expand and contract migrations
+
+`20260904010000` combined *expand* changes (new RPCs and permissions the new code
+needs) with *contract* changes (removing the old anonymous base-table access) in a
+single migration. Applying it required a brief, rollback-protected coordination
+window because the old and new frontends needed opposite database states.
+
+For any future change that requires coordinated code and database deployment, do
+not combine expand and contract in one migration. Split them into two migrations
+that reach production separately:
+
+1. **Expand migration** — additive only (new functions, columns, permissions,
+   compatible policies). Apply it while the current application remains live; it
+   must not break the running app.
+2. **Deploy the application** that depends on the expanded surface, then
+   smoke-test it against the expanded database.
+3. **Contract migration** — remove the now-unused old access (drop legacy
+   policies, revoke privileges, tighten grants) only after the new application is
+   fully deployed and verified.
+
+This ordering removes the need for a coordination window and lets each step be
+rolled back independently.
+
+## Production boundary (historical)
+
+Before the release recorded above, this contract lived in source control only and
+carried the instruction to avoid `db push`, `migration repair`, and linked resets
+until the baseline-history issue was reconciled and the disposable-environment
+checks passed. That reconciliation has since been completed and the migrations
+applied, as described in the release record. Future migrations follow the normal
+branch → disposable-stack CI → merge → `db push` flow, and the immutable applied
+migrations above must not be rewritten.
