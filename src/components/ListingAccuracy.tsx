@@ -69,10 +69,8 @@ export function ListingAccuracy({
   async function refreshListingStats() {
     const supabase = createSupabaseBrowserClient();
     const { data, error } = await supabase
-      .from("listings")
+      .rpc("get_public_listings", { p_listing_id: listingId })
       .select("confirmation_count, last_verified_at")
-      .eq("id", listingId)
-      .eq("status", "approved")
       .maybeSingle();
 
     if (error || !data) return;

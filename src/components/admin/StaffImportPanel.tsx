@@ -4,6 +4,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { logDevOperationError, logDevTiming } from "@/lib/dev-log";
 import {
   buildStaffImportPreview,
+  staffImportRpcPayload,
   staffImportDuplicateFilters,
   uniqueStaffPreviewRows,
   validateStaffWorkbookFile,
@@ -20,7 +21,8 @@ import { formatVerifiedDate } from "@/lib/week";
 import { readWorkbookSheet } from "@/lib/xlsx-sheet";
 
 const LOAD_ERROR = "Couldn’t read that workbook. Please try again.";
-const INSERT_ERROR = "Couldn’t insert staff listings. Please try again.";
+const INSERT_ERROR =
+  "Couldn’t insert the staff batch. The transaction was rolled back; no rows were inserted.";
 const EXISTING_ERROR = "Couldn’t check existing listings for duplicates. Please try again.";
 const TIMEOUT_ERROR =
   "Preview timed out after 15 seconds. Check your connection and try again.";
@@ -264,43 +266,15 @@ export function StaffImportPanel() {
 
     try {
       const supabase = createSupabaseBrowserClient();
-      let inserted = 0;
+      const { data, error } = await supabase.rpc("import_staff_listings", {
+        p_rows: staffImportRpcPayload(rows),
+      });
 
-      for (const row of rows) {
-        const { data, error } = await supabase
-          .from("listings")
-          .insert(row.listing)
-          .select("id")
-          .maybeSingle();
-
-        if (error || !data?.id) {
-          logDevOperationError("insert staff-sourced listing", error);
-          setErrorMessage(
-            inserted > 0
-              ? `Inserted ${inserted} listing${inserted === 1 ? "" : "s"}, then ran into an error. Remaining rows were not inserted.`
-              : INSERT_ERROR,
-          );
-          return;
-        }
-
-        if (row.reviewNote) {
-          const { error: noteError } = await supabase
-            .from("listing_staff_metadata")
-            .insert({
-              listing_id: data.id,
-              review_note: row.reviewNote,
-            });
-
-          if (noteError) {
-            logDevOperationError("insert staff listing metadata", noteError);
-            setErrorMessage(
-              `Inserted ${inserted + 1} listing${inserted + 1 === 1 ? "" : "s"}, but a staff review note could not be saved. Remaining rows were not inserted.`,
-            );
-            return;
-          }
-        }
-
-        inserted += 1;
+      const inserted = typeof data === "number" ? data : Number.NaN;
+      if (error || inserted !== rows.length) {
+        logDevOperationError("import staff-sourced listings", error);
+        setErrorMessage(INSERT_ERROR);
+        return;
       }
 
       setSuccessMessage(
@@ -324,8 +298,9 @@ export function StaffImportPanel() {
         </h2>
         <p className="mt-2 text-sm text-[var(--muted)]">
           Preview the workbook’s Import Candidates sheet, then insert accepted
-          rows as pending staff-sourced listings. This does not approve listings,
-          create contributor accounts, or award points.
+          rows as one all-or-nothing batch of pending staff-sourced listings.
+          This does not approve listings, create contributor accounts, or award
+          points.
         </p>
         <label className="mt-4 grid gap-2 text-sm font-medium text-[var(--ink)]">
           Excel workbook
