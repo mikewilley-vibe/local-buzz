@@ -9,6 +9,7 @@ import { getApprovedListing } from "@/lib/listings";
 import { formatFullLocation } from "@/lib/location";
 import { DAY_LABELS, TYPE_LABELS } from "@/lib/types";
 import { venueSlugFromListing } from "@/lib/venues";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { listingScheduleLabel } from "@/lib/week";
 
 export const dynamic = "force-dynamic";
@@ -22,11 +23,11 @@ export async function generateMetadata({
   const listing = await getApprovedListing(id);
 
   if (!listing) {
-    return { title: "Listing not found — Local Buzz" };
+    return { title: `Listing not found — ${PRODUCT_NAME}` };
   }
 
   return {
-    title: `${listing.placeName} — Local Buzz`,
+    title: `${listing.placeName} — ${PRODUCT_NAME}`,
     description: `${TYPE_LABELS[listing.type]}${listing.city ? ` in ${listing.city}` : ""}. ${listing.description}`,
   };
 }

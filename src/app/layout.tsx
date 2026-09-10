@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { Fraunces, Outfit } from "next/font/google";
 import { Header } from "@/components/Header";
+import {
+  PRODUCT_NAME,
+  SUPPORTING_DESCRIPTION,
+  TAGLINE,
+} from "@/lib/brand";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -12,10 +18,20 @@ const outfit = Outfit({
   subsets: ["latin"],
 });
 
-export const metadata = {
-  title: "Local Buzz — Hampton Roads this week",
-  description:
-    "Happy hours, food specials, trivia, and events at bars and restaurants in Hampton Roads.",
+export const metadata: Metadata = {
+  title: `${PRODUCT_NAME} — ${TAGLINE}`,
+  description: SUPPORTING_DESCRIPTION,
+  applicationName: PRODUCT_NAME,
+  openGraph: {
+    title: `${PRODUCT_NAME} — ${TAGLINE}`,
+    description: SUPPORTING_DESCRIPTION,
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: `${PRODUCT_NAME} — ${TAGLINE}`,
+    description: SUPPORTING_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

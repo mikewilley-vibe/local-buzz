@@ -83,7 +83,7 @@ export function AdminDashboard() {
   if (gate === "forbidden") {
     return (
       <div className="mx-auto grid max-w-lg gap-4">
-        <h1 className="font-display text-4xl text-[var(--ink)]">Admin</h1>
+        <h1 className="font-display text-4xl text-[var(--ink)]">HapsHere admin</h1>
         <p className="text-[var(--muted)]" role="status">
           You do not have administrator access
         </p>
@@ -123,7 +123,7 @@ export function AdminDashboard() {
             Moderation
           </p>
           <h1 className="mt-2 font-display text-4xl text-[var(--ink)]">
-            Admin dashboard
+            HapsHere admin
           </h1>
           <p className="mt-2 text-[var(--muted)]">
             Review pending listings, change reports, listings that need

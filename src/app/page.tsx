@@ -9,6 +9,7 @@ import {
 } from "@/lib/filters";
 import { getListings } from "@/lib/listings";
 import { DAY_LABELS } from "@/lib/types";
+import { SUPPORTING_DESCRIPTION, TAGLINE } from "@/lib/brand";
 import { easternTodayDay, getThisWeek } from "@/lib/week";
 import Link from "next/link";
 
@@ -50,12 +51,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           Version 1 · Hampton Roads
         </p>
         <h1 className="mt-2 font-display text-4xl leading-tight text-[var(--ink)] sm:text-5xl">
-          What’s going on this week?
+          {TAGLINE}
         </h1>
         <p className="mt-3 max-w-xl text-[var(--muted)]">
-          Happy hours, food specials, trivia, bingo, and live music around
-          Norfolk, Virginia Beach, and the rest of Hampton Roads. Community
-          submissions are reviewed before they appear on this calendar.
+          {SUPPORTING_DESCRIPTION} Happy hours, trivia, bingo, and live music
+          around Norfolk, Virginia Beach, and the rest of Hampton Roads.
+          Community submissions are reviewed before they appear here.
         </p>
       </div>
 

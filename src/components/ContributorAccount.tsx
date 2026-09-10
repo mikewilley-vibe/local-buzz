@@ -595,7 +595,7 @@ export function ContributorAccount() {
       {gate === "anonymous" ? (
         <div className="grid gap-5">
           <p className="text-[var(--muted)]">
-            You already have a temporary Local Buzz session. Linking your email
+            You already have a temporary HapsHere session. Linking your email
             keeps that activity, including listings you submitted before creating
             a visible account.
           </p>
@@ -655,7 +655,7 @@ export function ContributorAccount() {
       {gate === "check-email" ? (
         <div className="grid gap-4">
           <p className="text-[var(--muted)]">
-            Check your email and open the Local Buzz link on this device to
+            Check your email and open the HapsHere link on this device to
             finish signing in. The link returns you here.
           </p>
           <button
@@ -692,7 +692,7 @@ export function ContributorAccount() {
       {gate === "signed-in" && contributor ? (
         <div className="grid gap-6">
           <p className="text-[var(--muted)]">
-            Thanks for helping neighbors find what’s going on this week.
+            Thanks for helping neighbors find what’s happening here.
           </p>
 
           <dl className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:p-5">

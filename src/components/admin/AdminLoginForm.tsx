@@ -116,7 +116,7 @@ export function AdminLoginForm() {
     <div className="mx-auto grid max-w-md gap-6">
       <div>
         <p className="text-sm font-medium uppercase tracking-[0.16em] text-[var(--amber-deep)]">
-          Staff
+          HapsHere
         </p>
         <h1 className="mt-2 font-display text-4xl text-[var(--ink)]">
           Admin sign in

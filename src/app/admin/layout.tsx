@@ -1,5 +1,7 @@
+import { PRODUCT_NAME } from "@/lib/brand";
+
 export const metadata = {
-  title: "Admin — Local Buzz",
+  title: `Admin — ${PRODUCT_NAME}`,
   robots: { index: false, follow: false },
 };
 

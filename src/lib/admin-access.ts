@@ -66,14 +66,14 @@ export async function resolveAdminAccess(): Promise<AdminAccess> {
 
   if (!session?.user) {
     if (process.env.NODE_ENV === "development") {
-      console.info("[Local Buzz] admin access", "none");
+      console.info("[HapsHere] admin access", "none");
     }
     return { kind: "none", supabase, user: null };
   }
 
   if (session.user.is_anonymous) {
     if (process.env.NODE_ENV === "development") {
-      console.info("[Local Buzz] admin access", "anonymous");
+      console.info("[HapsHere] admin access", "anonymous");
     }
     return { kind: "anonymous", supabase, user: session.user };
   }
@@ -81,7 +81,7 @@ export async function resolveAdminAccess(): Promise<AdminAccess> {
   const user = await readVerifiedUser(supabase, session.user);
   if (!user || user.is_anonymous) {
     if (process.env.NODE_ENV === "development") {
-      console.info("[Local Buzz] admin access", "anonymous");
+      console.info("[HapsHere] admin access", "anonymous");
     }
     return { kind: "anonymous", supabase, user };
   }
@@ -90,7 +90,7 @@ export async function resolveAdminAccess(): Promise<AdminAccess> {
   const kind: AdminAccessKind = isAdmin ? "admin" : "user";
 
   if (process.env.NODE_ENV === "development") {
-    console.info("[Local Buzz] admin access", kind);
+    console.info("[HapsHere] admin access", kind);
   }
 
   return { kind, supabase, user };
