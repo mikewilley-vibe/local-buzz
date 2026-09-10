@@ -26,11 +26,13 @@ export const metadata: Metadata = {
     title: `${PRODUCT_NAME} — ${TAGLINE}`,
     description: SUPPORTING_DESCRIPTION,
     type: "website",
+    images: [{ url: "/hapshere-icon-192.png", width: 192, height: 192, alt: PRODUCT_NAME }],
   },
   twitter: {
     card: "summary",
     title: `${PRODUCT_NAME} — ${TAGLINE}`,
     description: SUPPORTING_DESCRIPTION,
+    images: ["/hapshere-icon-192.png"],
   },
 };
 

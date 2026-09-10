@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { PRODUCT_NAME, SUPPORTING_DESCRIPTION } from "@/lib/brand";
 
@@ -5,13 +6,28 @@ export function Header() {
   return (
     <header className="border-b border-[var(--line)] bg-[var(--paper)]">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <Link href="/" className="group" aria-label={`${PRODUCT_NAME} home`}>
-          <p className="font-display text-xl tracking-tight text-[var(--ink)] sm:text-2xl">
-            {PRODUCT_NAME}
-          </p>
-          <p className="text-xs text-[var(--muted)] sm:text-sm">
-            {SUPPORTING_DESCRIPTION}
-          </p>
+        <Link
+          href="/"
+          className="group flex min-w-0 items-center gap-2.5 sm:gap-3"
+          aria-label={`${PRODUCT_NAME} home`}
+        >
+          <Image
+            src="/hapshere-icon-192.png"
+            alt=""
+            width={40}
+            height={40}
+            priority
+            aria-hidden
+            className="size-8 shrink-0 sm:size-10"
+          />
+          <span className="min-w-0">
+            <span className="block font-display text-xl tracking-tight text-[var(--ink)] sm:text-2xl">
+              {PRODUCT_NAME}
+            </span>
+            <span className="block text-xs leading-snug text-[var(--muted)] sm:text-sm">
+              {SUPPORTING_DESCRIPTION}
+            </span>
+          </span>
         </Link>
         <nav className="flex flex-wrap items-center justify-end gap-2 text-sm" aria-label="Main">
           <Link
