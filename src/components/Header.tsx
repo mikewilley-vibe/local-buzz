@@ -17,6 +17,7 @@ export function Header() {
             width={40}
             height={40}
             priority
+            unoptimized
             aria-hidden
             className="size-8 shrink-0 sm:size-10"
           />
