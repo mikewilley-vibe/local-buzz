@@ -33,6 +33,24 @@ it does not replace them.
 Those capabilities come only after the staging boundary and disposable-stack
 tests are reviewed and deployed to the isolated development project.
 
+## Collector foundation
+
+The first collector implementation is an explicitly triggered server route:
+`POST /api/admin/scout/collect`. It is disabled unless
+`SCOUT_COLLECTOR_ENABLED=true` and requires the `x-scout-collector-secret`
+header. It reads only the approved JSON source catalog in
+`SCOUT_SOURCE_CATALOG_JSON`, fetches public pages with a size and timeout limit,
+and uses the server-side `OPENAI_API_KEY` to extract structured candidates.
+
+The service-role key and model key are server-only. The route upserts candidates
+and source evidence into the private Scout tables; it never calls the public
+listing import RPC and never publishes a candidate. Begin with official venue
+websites and event pages. Add social sources only after their terms, access
+method, and evidence quality have been reviewed.
+
+Keep the collector disabled in production until the development source catalog
+has been reviewed and the route has been exercised with a small Norfolk pilot.
+
 ## Controlled release order
 
 1. Rebuild and test the migration on a disposable local Supabase stack.
@@ -46,3 +64,33 @@ tests are reviewed and deployed to the isolated development project.
    broader discovery or any production deployment.
 
 No production database action is part of this foundation change.
+
+## Norfolk pilot source catalog
+
+The first pilot uses 25 public, official or official-tourism sources recorded in
+`config/scout-norfolk-pilot.json`:
+
+- six Norfolk 23508-area venues from the existing researched seed list
+- nineteen additional Norfolk establishments from the reviewed 25-establishment catalog
+
+The source list includes official venue pages, menus, event calendars, and a
+small number of VisitNorfolk pages where the existing research used the city's
+official tourism calendar or happy-hour roundup. Older or tourism-sourced offers
+remain pending and require admin or phone confirmation before publication.
+
+These URLs were checked before being added. The catalog is intentionally small:
+it lets us review extraction quality, duplicate handling, and stale-source
+behavior across the planned initial Norfolk pilot before adding Virginia Beach,
+more venues, or any social-network source.
+
+For a local/dev run, set the catalog from that file as a compact JSON value:
+
+```bash
+export SCOUT_SOURCE_CATALOG_JSON="$(jq -c . config/scout-norfolk-pilot.json)"
+export SCOUT_COLLECTOR_ENABLED=true
+```
+
+The service-role key, OpenAI key, and collector secret must be entered through
+the dev environment's secret store or an uncommitted local environment file;
+they must never be committed or sent to the browser.
+
