@@ -1,0 +1,24 @@
+[
+  {
+    "id": "cova-brewing-norfolk",
+    "placeName": "COVA Brewing Co",
+    "city": "Norfolk",
+    "url": "https://covabrewco.com/",
+    "sourceKind": "website"
+  },
+  {
+    "id": "bold-mariner-norfolk",
+    "placeName": "Bold Mariner Brewing Company",
+    "city": "Norfolk",
+    "url": "https://theboldmariner.com/",
+    "sourceKind": "website"
+  },
+  {
+    "id": "visit-norfolk-events",
+    "placeName": "VisitNorfolk events calendar",
+    "city": "Norfolk",
+    "url": "https://www.visitnorfolk.com/events/",
+    "sourceKind": "event_calendar"
+  }
+]
+
