@@ -67,16 +67,21 @@ No production database action is part of this foundation change.
 
 ## Norfolk pilot source catalog
 
-The first pilot uses three public, official sources recorded in
+The first pilot uses 25 public, official or official-tourism sources recorded in
 `config/scout-norfolk-pilot.json`:
 
-- COVA Brewing Co's own website
-- Bold Mariner Brewing Company's own website
-- VisitNorfolk's official events calendar
+- six Norfolk 23508-area venues from the existing researched seed list
+- nineteen additional Norfolk establishments from the reviewed 25-establishment catalog
+
+The source list includes official venue pages, menus, event calendars, and a
+small number of VisitNorfolk pages where the existing research used the city's
+official tourism calendar or happy-hour roundup. Older or tourism-sourced offers
+remain pending and require admin or phone confirmation before publication.
 
 These URLs were checked before being added. The catalog is intentionally small:
 it lets us review extraction quality, duplicate handling, and stale-source
-behavior before adding more venues or any social-network source.
+behavior across the planned initial Norfolk pilot before adding Virginia Beach,
+more venues, or any social-network source.
 
 For a local/dev run, set the catalog from that file as a compact JSON value:
 
