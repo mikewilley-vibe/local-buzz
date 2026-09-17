@@ -8,12 +8,13 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PendingListingsPanel } from "./PendingListingsPanel";
 import { PendingReportsPanel } from "./PendingReportsPanel";
 import { NeedsVerificationPanel } from "./NeedsVerificationPanel";
+import { ScoutCandidatesPanel } from "./ScoutCandidatesPanel";
 import { StaffImportPanel } from "./StaffImportPanel";
 
 type Gate = "loading" | "forbidden" | "ready";
-type Tab = "listings" | "reports" | "verification" | "import";
+type Tab = "listings" | "reports" | "verification" | "scout" | "import";
 
-const TABS: Tab[] = ["listings", "reports", "verification", "import"];
+const TABS: Tab[] = ["listings", "reports", "verification", "scout", "import"];
 
 export function AdminDashboard() {
   const router = useRouter();
@@ -23,6 +24,7 @@ export function AdminDashboard() {
   const [listingCount, setListingCount] = useState(0);
   const [reportCount, setReportCount] = useState(0);
   const [verificationCount, setVerificationCount] = useState(0);
+  const [scoutCount, setScoutCount] = useState(0);
   const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
@@ -102,16 +104,19 @@ export function AdminDashboard() {
   const listingsTabId = `${tabId}-listings`;
   const reportsTabId = `${tabId}-reports`;
   const verificationTabId = `${tabId}-verification`;
+  const scoutTabId = `${tabId}-scout`;
   const importTabId = `${tabId}-import`;
   const listingsPanelId = `${tabId}-listings-panel`;
   const reportsPanelId = `${tabId}-reports-panel`;
   const verificationPanelId = `${tabId}-verification-panel`;
+  const scoutPanelId = `${tabId}-scout-panel`;
   const importPanelId = `${tabId}-import-panel`;
 
   function tabButtonId(next: Tab) {
     if (next === "listings") return listingsTabId;
     if (next === "reports") return reportsTabId;
     if (next === "verification") return verificationTabId;
+    if (next === "scout") return scoutTabId;
     return importTabId;
   }
 
@@ -205,6 +210,22 @@ export function AdminDashboard() {
           Needs verification ({verificationCount})
         </button>
         <button
+          id={scoutTabId}
+          type="button"
+          role="tab"
+          aria-selected={tab === "scout"}
+          aria-controls={scoutPanelId}
+          tabIndex={tab === "scout" ? 0 : -1}
+          onClick={() => setTab("scout")}
+          className={`min-h-11 rounded-full px-4 py-2 text-sm font-medium outline-none ring-[var(--amber)] focus-visible:ring-2 ${
+            tab === "scout"
+              ? "bg-[var(--amber)] text-[var(--ink)]"
+              : "border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--wash)]"
+          }`}
+        >
+          Scout review ({scoutCount})
+        </button>
+        <button
           id={importTabId}
           type="button"
           role="tab"
@@ -245,6 +266,14 @@ export function AdminDashboard() {
         hidden={tab !== "verification"}
       >
         <NeedsVerificationPanel onCountChange={setVerificationCount} />
+      </div>
+      <div
+        id={scoutPanelId}
+        role="tabpanel"
+        aria-labelledby={scoutTabId}
+        hidden={tab !== "scout"}
+      >
+        <ScoutCandidatesPanel onCountChange={setScoutCount} />
       </div>
       <div
         id={importPanelId}
