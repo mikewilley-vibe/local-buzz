@@ -1,24 +1,28 @@
 [
-  {
-    "id": "cova-brewing-norfolk",
-    "placeName": "COVA Brewing Co",
-    "city": "Norfolk",
-    "url": "https://covabrewco.com/",
-    "sourceKind": "website"
-  },
-  {
-    "id": "bold-mariner-norfolk",
-    "placeName": "Bold Mariner Brewing Company",
-    "city": "Norfolk",
-    "url": "https://theboldmariner.com/",
-    "sourceKind": "website"
-  },
-  {
-    "id": "visit-norfolk-events",
-    "placeName": "VisitNorfolk events calendar",
-    "city": "Norfolk",
-    "url": "https://www.visitnorfolk.com/events/",
-    "sourceKind": "event_calendar"
-  }
+  {"id":"dirty-buffalo-colley","placeName":"The Dirty Buffalo – Colley Ave / ODU","city":"Norfolk","url":"https://thedirtybuffalo.com/specials","sourceKind":"website"},
+  {"id":"afterglow-brewing","placeName":"Afterglow Brewing","city":"Norfolk","url":"https://afterglowbrewing.com/-events","sourceKind":"event_calendar"},
+  {"id":"elation-brewing","placeName":"Elation Brewing","city":"Norfolk","url":"https://elation.beer/events/","sourceKind":"event_calendar"},
+  {"id":"hanks-filling-station","placeName":"Hank's Filling Station","city":"Norfolk","url":"https://hanksfillingstation.com/venue/hanks-filling-station/","sourceKind":"event_calendar"},
+  {"id":"craft-on-colley","placeName":"Craft on Colley","city":"Norfolk","url":"https://craftoncolley.com/weekly-specials-craft-10-14-june/","sourceKind":"website"},
+  {"id":"cogans-pizza-north","placeName":"Cogans Pizza North","city":"Norfolk","url":"https://coganspizza.com/happy-hour-calling-your-name/","sourceKind":"website"},
+  {"id":"coach-house","placeName":"The Coach House","city":"Norfolk","url":"https://colleycoachhouse.com/","sourceKind":"website"},
+  {"id":"orapax","placeName":"Orapax","city":"Norfolk","url":"https://www.orapaxrestaurant.com/specials","sourceKind":"website"},
+  {"id":"gershwins","placeName":"Gershwin's","city":"Norfolk","url":"https://gershwinsongranby.com/norfolk-downtown-norfolk-gershwin-s-drink-menu","sourceKind":"menu"},
+  {"id":"saltine","placeName":"Saltine","city":"Norfolk","url":"https://saltinenorfolk.com/weekly-events/","sourceKind":"event_calendar"},
+  {"id":"todd-jurichs-bistro","placeName":"Todd Jurich's Bistro","city":"Norfolk","url":"https://www.toddjurichsbistro.com/","sourceKind":"website"},
+  {"id":"varia","placeName":"Varia","city":"Norfolk","url":"https://varianorfolk.com/weekly-events/","sourceKind":"event_calendar"},
+  {"id":"pbr-norfolk","placeName":"PBR Norfolk","city":"Norfolk","url":"https://watersidedistrict.com/Eat-and-Drink/PBR-Norfolk-A-Coors-Banquet-Bar/Weekly-Specials/PBR-Norfolk-Happy-Hour","sourceKind":"website"},
+  {"id":"four-eleven-york","placeName":"Four Eleven York","city":"Norfolk","url":"https://fourelevenyork.com/411_happy_hour/","sourceKind":"website"},
+  {"id":"freemason-abbey","placeName":"Freemason Abbey","city":"Norfolk","url":"https://freemasonabbey.com/norfolk-downtown-norfolk-freemason-abbey-restaurant-happy-hours-specials","sourceKind":"website"},
+  {"id":"public-house","placeName":"The Public House","city":"Norfolk","url":"https://www.visitnorfolk.com/blog/best-spots-for-norfolk-happy-hour/","sourceKind":"website"},
+  {"id":"luna-maya","placeName":"Luna Maya","city":"Norfolk","url":"https://www.lunamayarestaurant.com/happy-hour","sourceKind":"website"},
+  {"id":"pelons-baja-grill","placeName":"Pelon's Baja Grill","city":"Norfolk","url":"https://www.visitnorfolk.com/blog/best-spots-for-norfolk-happy-hour/","sourceKind":"website"},
+  {"id":"press-626","placeName":"Press 626","city":"Norfolk","url":"https://www.press626.com/_files/ugd/1be84a_6a0159a31ea148fca509c632ca1104cd.pdf","sourceKind":"menu"},
+  {"id":"cova-brewing-norfolk","placeName":"COVA Brewing Company","city":"Norfolk","url":"https://covabrewco.com/events/","sourceKind":"event_calendar"},
+  {"id":"ov-beach-tavern","placeName":"The OV Beach Tavern","city":"Norfolk","url":"https://www.visitnorfolk.com/blog/best-spots-for-norfolk-happy-hour/","sourceKind":"website"},
+  {"id":"mudita-cafe-bar","placeName":"Mudita Cafe & Bar","city":"Norfolk","url":"https://www.visitnorfolk.com/blog/best-spots-for-norfolk-happy-hour/","sourceKind":"website"},
+  {"id":"omars-carriage-house","placeName":"Omar's Carriage House","city":"Norfolk","url":"https://omarscarriagehouse.com/home/","sourceKind":"website"},
+  {"id":"hells-kitchen","placeName":"Hell's Kitchen","city":"Norfolk","url":"https://www.hknorfolk.com/","sourceKind":"website"},
+  {"id":"grain","placeName":"Grain","city":"Norfolk","url":"https://grainnorfolk.com/","sourceKind":"website"}
 ]
 
