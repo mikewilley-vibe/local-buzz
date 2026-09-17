@@ -65,3 +65,27 @@ has been reviewed and the route has been exercised with a small Norfolk pilot.
 
 No production database action is part of this foundation change.
 
+## Norfolk pilot source catalog
+
+The first pilot uses three public, official sources recorded in
+`config/scout-norfolk-pilot.json`:
+
+- COVA Brewing Co's own website
+- Bold Mariner Brewing Company's own website
+- VisitNorfolk's official events calendar
+
+These URLs were checked before being added. The catalog is intentionally small:
+it lets us review extraction quality, duplicate handling, and stale-source
+behavior before adding more venues or any social-network source.
+
+For a local/dev run, set the catalog from that file as a compact JSON value:
+
+```bash
+export SCOUT_SOURCE_CATALOG_JSON="$(jq -c . config/scout-norfolk-pilot.json)"
+export SCOUT_COLLECTOR_ENABLED=true
+```
+
+The service-role key, OpenAI key, and collector secret must be entered through
+the dev environment's secret store or an uncommitted local environment file;
+they must never be committed or sent to the browser.
+
