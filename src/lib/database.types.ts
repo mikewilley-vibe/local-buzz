@@ -42,6 +42,133 @@ export type Database = {
         }
         Relationships: []
       }
+      listing_candidate_evidence: {
+        Row: {
+          candidate_id: string
+          captured_at: string
+          created_at: string
+          excerpt: string
+          id: string
+          source_kind: string
+          source_title: string | null
+          source_url: string
+        }
+        Insert: {
+          candidate_id: string
+          captured_at: string
+          created_at?: string
+          excerpt: string
+          id?: string
+          source_kind: string
+          source_title?: string | null
+          source_url: string
+        }
+        Update: {
+          candidate_id?: string
+          captured_at?: string
+          created_at?: string
+          excerpt?: string
+          id?: string
+          source_kind?: string
+          source_title?: string | null
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_candidate_evidence_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "listing_candidates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      listing_candidates: {
+        Row: {
+          city: string
+          confidence: number
+          created_at: string
+          days: string[]
+          dedupe_key: string
+          description: string
+          discovered_at: string
+          end_time: string | null
+          expires_at: string
+          id: string
+          last_checked_at: string
+          listing_type: string
+          place_name: string
+          published_listing_id: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_url: string
+          start_time: string | null
+          status: string
+          street_address: string | null
+          updated_at: string
+          zip_code: string | null
+        }
+        Insert: {
+          city: string
+          confidence: number
+          created_at?: string
+          days: string[]
+          dedupe_key: string
+          description: string
+          discovered_at?: string
+          end_time?: string | null
+          expires_at?: string
+          id?: string
+          last_checked_at?: string
+          listing_type: string
+          place_name: string
+          published_listing_id?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_url: string
+          start_time?: string | null
+          status?: string
+          street_address?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Update: {
+          city?: string
+          confidence?: number
+          created_at?: string
+          days?: string[]
+          dedupe_key?: string
+          description?: string
+          discovered_at?: string
+          end_time?: string | null
+          expires_at?: string
+          id?: string
+          last_checked_at?: string
+          listing_type?: string
+          place_name?: string
+          published_listing_id?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_url?: string
+          start_time?: string | null
+          status?: string
+          street_address?: string | null
+          updated_at?: string
+          zip_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_candidates_published_listing_id_fkey"
+            columns: ["published_listing_id"]
+            isOneToOne: true
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listing_confirmations: {
         Row: {
           created_at: string
@@ -280,6 +407,14 @@ export type Database = {
       }
       import_staff_listings: { Args: { p_rows: Json }; Returns: number }
       is_approved_listing: { Args: { p_listing_id: string }; Returns: boolean }
+      publish_listing_candidate: {
+        Args: { p_candidate_id: string; p_review_note?: string }
+        Returns: string
+      }
+      reject_listing_candidate: {
+        Args: { p_candidate_id: string; p_reason: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

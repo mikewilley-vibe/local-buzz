@@ -34,8 +34,7 @@ jobs:
       - name: Start disposable Supabase stack
         run: supabase start
 
-      # Clean rebuild from scratch: baseline -> the three incrementals ->
-      # 20260904010000_harden_public_api_and_staff_import -> seed.
+      # Clean rebuild from scratch: baseline -> forward migrations -> seed.
       - name: Clean rebuild (migrations + seed)
         run: supabase db reset
 
@@ -54,6 +53,19 @@ jobs:
             exit 1
           fi
           echo "All hardening checks passed."
+
+      - name: Run HapsHere Scout foundation checks
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/hapshere-scout-foundation.sql 2>&1 | tee scout-checks-output.txt
+
+          if grep -q 'FAIL' scout-checks-output.txt; then
+            echo "::error::One or more Scout foundation checks reported FAIL."
+            exit 1
+          fi
+          echo "All Scout foundation checks passed."
 
       # Informational: prove the committed types match a fresh local generation.
       # The new RPCs (get_public_listings, import_staff_listings, is_approved_listing)

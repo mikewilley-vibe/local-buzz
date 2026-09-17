@@ -19,23 +19,27 @@ Point-in-time catalog evidence: `docs/database-contract-evidence-20260904.md`.
 
 - **Schemas:** `public` (application), `private` (trigger functions, not exposed
   via PostgREST). Extensions `pgcrypto` and `uuid-ossp` live in `extensions`.
-- **Tables (7):** `listings`, `listing_confirmations`, `listing_reports`,
-  `admin_users`, `contributor_profiles`, `point_events`, `listing_staff_metadata`.
-  RLS is enabled on all seven.
+- **Tables (9):** `listings`, `listing_confirmations`, `listing_reports`,
+  `admin_users`, `contributor_profiles`, `point_events`, `listing_staff_metadata`,
+  `listing_candidates`, and `listing_candidate_evidence`. RLS is enabled on all
+  nine. The two candidate tables form the private HapsHere Scout review boundary.
 - **Enums:** none. Business value sets (cities, listing types, statuses, days,
   report reasons/statuses, point event types) are `text` + CHECK constraints.
-- **Constraints:** 34 named — 7 primary keys, 3 unique, foreign keys to
-  `auth.users` and between application tables, and the CHECKs above.
-- **Indexes:** 12 — 10 backing PK/UNIQUE plus `listings_submitted_by_idx` and
-  `listings_zip_code_idx`.
+- **Constraints:** 60 named — primary keys, unique constraints, foreign keys to
+  `auth.users` and between application tables, and bounded business-value and
+  review-state CHECKs.
+- **Indexes:** 19 — PK/UNIQUE backing indexes, the two original listing indexes,
+  and two Scout review/evidence indexes.
 - **Functions (`private`, owner `postgres`):** `set_listing_submitter` (INVOKER),
   `update_listing_confirmation`, `award_listing_approval_points`,
-  `award_listing_confirmation_points` (all three SECURITY DEFINER,
-  `search_path = ''`).
-- **Triggers (4):** submitter attribution before insert on `listings`; approval
+  `award_listing_confirmation_points` (all three SECURITY DEFINER), and the
+  Scout candidate updated-at trigger function (all `search_path = ''`).
+- **Triggers (5):** submitter attribution before insert on `listings`; approval
   points after status update on `listings`; confirmation points and the
-  confirmation-count/verified-at update after insert on `listing_confirmations`.
-- **RLS policies:** 21 (see the evidence report for the full list).
+  confirmation-count/verified-at update after insert on `listing_confirmations`;
+  and Scout candidate updated-at maintenance.
+- **RLS policies:** 23. The two Scout policies are administrator-read-only;
+  candidates are mutated through server credentials or guarded RPCs.
 - **Points model:** +5 to a non-staff contributor on first approval; +1 to the
   contributor when a *different* user confirms a non-staff listing; self- and
   staff-sourced awards excluded; idempotent via `point_events.source_key`.
@@ -84,6 +88,8 @@ Fresh databases apply migrations in this order (filename timestamp order):
 3. `supabase/migrations/20260903024646_staff_sourced_listings.sql`
 4. `supabase/migrations/20260903074515_listing_staff_metadata.sql`
 5. `supabase/migrations/20260904010000_harden_public_api_and_staff_import.sql`
+6. `supabase/migrations/20260904120000_contributor_profiles_grant.sql`
+7. `supabase/migrations/20260917010000_hapshere_scout_foundation.sql`
 
 The three incrementals (2–4) carry the **exact remote-recorded versions** and the
 unchanged SQL from `main`. They are self-guarding (`IF NOT EXISTS`,
@@ -93,6 +99,10 @@ after the baseline is a no-op that converges on the same final state. The
 migration 4, matching production (the column does not exist in the final schema).
 Migration 5 is a forward-only correction that adds the safe public read boundary,
 tightens listing grants and submission policies, and makes staff imports atomic.
+Migration 6 restores the table privileges required by the existing contributor
+profile RLS policies. Migration 7 adds the private HapsHere Scout candidate and
+evidence tables plus administrator-only publish/reject RPCs. It does not add a
+crawler, an AI provider, or automatic publication; see `docs/hapshere-scout.md`.
 
 ## 4. Local vs remote migration-history timestamps
 
