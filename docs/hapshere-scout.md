@@ -33,6 +33,24 @@ it does not replace them.
 Those capabilities come only after the staging boundary and disposable-stack
 tests are reviewed and deployed to the isolated development project.
 
+## Collector foundation
+
+The first collector implementation is an explicitly triggered server route:
+`POST /api/admin/scout/collect`. It is disabled unless
+`SCOUT_COLLECTOR_ENABLED=true` and requires the `x-scout-collector-secret`
+header. It reads only the approved JSON source catalog in
+`SCOUT_SOURCE_CATALOG_JSON`, fetches public pages with a size and timeout limit,
+and uses the server-side `OPENAI_API_KEY` to extract structured candidates.
+
+The service-role key and model key are server-only. The route upserts candidates
+and source evidence into the private Scout tables; it never calls the public
+listing import RPC and never publishes a candidate. Begin with official venue
+websites and event pages. Add social sources only after their terms, access
+method, and evidence quality have been reviewed.
+
+Keep the collector disabled in production until the development source catalog
+has been reviewed and the route has been exercised with a small Norfolk pilot.
+
 ## Controlled release order
 
 1. Rebuild and test the migration on a disposable local Supabase stack.
@@ -46,3 +64,4 @@ tests are reviewed and deployed to the isolated development project.
    broader discovery or any production deployment.
 
 No production database action is part of this foundation change.
+
