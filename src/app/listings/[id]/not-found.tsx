@@ -7,8 +7,8 @@ export default function ListingNotFound() {
         Listing not found
       </h1>
       <p className="text-[var(--muted)]">
-        This listing isn’t on the public calendar. It may be pending review,
-        outdated, or no longer available.
+        This listing isn’t on the public Local Buzz calendar. It may be pending
+        review, outdated, or no longer available.
       </p>
       <p>
         <Link

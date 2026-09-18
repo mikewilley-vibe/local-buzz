@@ -1,18 +1,36 @@
+import Image from "next/image";
 import Link from "next/link";
+import { ICON_SRC, PRODUCT_NAME, SUPPORTING_DESCRIPTION } from "@/lib/brand";
 
 export function Header() {
   return (
     <header className="border-b border-[var(--line)] bg-[var(--paper)]">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <Link href="/" className="group">
-          <p className="font-display text-xl tracking-tight text-[var(--ink)] sm:text-2xl">
-            Local Buzz
-          </p>
-          <p className="text-xs text-[var(--muted)] sm:text-sm">
-            Hampton Roads this week
-          </p>
+        <Link
+          href="/"
+          className="group flex min-w-0 items-center gap-2.5 sm:gap-3"
+          aria-label={`${PRODUCT_NAME} home`}
+        >
+          <Image
+            src={ICON_SRC}
+            alt=""
+            width={40}
+            height={40}
+            priority
+            unoptimized
+            aria-hidden
+            className="size-8 shrink-0 sm:size-10"
+          />
+          <span className="min-w-0">
+            <span className="block font-display text-xl tracking-tight text-[var(--ink)] sm:text-2xl">
+              {PRODUCT_NAME}
+            </span>
+            <span className="block text-xs leading-snug text-[var(--muted)] sm:text-sm">
+              {SUPPORTING_DESCRIPTION}
+            </span>
+          </span>
         </Link>
-        <nav className="flex flex-wrap items-center justify-end gap-2 text-sm">
+        <nav className="flex flex-wrap items-center justify-end gap-2 text-sm" aria-label="Main">
           <Link
             href="/"
             className="rounded-full px-3 py-1.5 text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2"

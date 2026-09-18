@@ -8,6 +8,7 @@ import {
   resolveAdminAccess,
 } from "@/lib/admin-access";
 import { logDevOperationError } from "@/lib/dev-log";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const GENERIC_ERROR = "Couldn’t sign in. Please try again.";
@@ -116,7 +117,7 @@ export function AdminLoginForm() {
     <div className="mx-auto grid max-w-md gap-6">
       <div>
         <p className="text-sm font-medium uppercase tracking-[0.16em] text-[var(--amber-deep)]">
-          Staff
+          {PRODUCT_NAME}
         </p>
         <h1 className="mt-2 font-display text-4xl text-[var(--ink)]">
           Admin sign in

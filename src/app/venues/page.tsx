@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { getApprovedVenueDirectory } from "@/lib/venues";
 
 export const dynamic = "force-dynamic";
@@ -7,9 +8,8 @@ export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
-  title: "Venues — Local Buzz",
-  description:
-    "Approved Hampton Roads bars and restaurants with current Local Buzz listings.",
+  title: `Venues — ${PRODUCT_NAME}`,
+  description: `Approved Hampton Roads bars and restaurants with current ${PRODUCT_NAME} listings.`,
 };
 
 export default async function VenuesPage() {

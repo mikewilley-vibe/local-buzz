@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { AddListingForm } from "@/components/AddListingForm";
+import { PRODUCT_NAME } from "@/lib/brand";
+
+export const metadata: Metadata = {
+  title: `Add a listing — ${PRODUCT_NAME}`,
+  description: `Share a local event or special with ${PRODUCT_NAME}.`,
+};
 
 export default function AddPage() {
   return (

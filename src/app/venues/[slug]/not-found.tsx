@@ -7,8 +7,8 @@ export default function VenueNotFound() {
         Venue not found
       </h1>
       <p className="text-[var(--muted)]">
-        This venue isn’t on the public calendar. It may have no approved
-        listings yet, or the link may be out of date.
+        This venue isn’t on the public Local Buzz calendar. It may have no
+        approved listings yet, or the link may be out of date.
       </p>
       <p>
         <Link
