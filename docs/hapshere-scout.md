@@ -1,6 +1,6 @@
-# HapsHere Scout foundation
+# Local Buzz 757 Scout foundation
 
-HapsHere Scout is the staging and review boundary for specials or recurring
+Local Buzz 757 Scout is the staging and review boundary for specials or recurring
 events discovered from public web sources. It supplements community submissions;
 it does not replace them.
 

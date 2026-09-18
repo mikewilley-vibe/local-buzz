@@ -1,5 +1,6 @@
 import { Fraunces, Outfit } from "next/font/google";
 import { Header } from "@/components/Header";
+import { PRODUCT_NAME } from "@/lib/brand";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -13,7 +14,8 @@ const outfit = Outfit({
 });
 
 export const metadata = {
-  title: "Local Buzz — Hampton Roads this week",
+  applicationName: PRODUCT_NAME,
+  title: `${PRODUCT_NAME} — Hampton Roads this week`,
   description:
     "Happy hours, food specials, trivia, and events at bars and restaurants in Hampton Roads.",
 };

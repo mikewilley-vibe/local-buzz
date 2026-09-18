@@ -1,5 +1,5 @@
 -- =============================================================================
--- Local Buzz — baseline schema
+-- Local Buzz 757 — baseline schema
 -- =============================================================================
 -- Provenance: captured read-only from the live Supabase project
 --   (project ref: vghnfdukyosvvoqrxmok) on 2026-09-03. This file represents the

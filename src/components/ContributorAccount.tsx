@@ -32,6 +32,7 @@ import {
   ensureAnonymousSession,
   isAuthSessionMissing,
 } from "@/lib/supabase/client";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { formatDisplayDate } from "@/lib/week";
 
 const GENERIC_ERROR = "Something went wrong. Please try again.";
@@ -595,7 +596,7 @@ export function ContributorAccount() {
       {gate === "anonymous" ? (
         <div className="grid gap-5">
           <p className="text-[var(--muted)]">
-            You already have a temporary Local Buzz session. Linking your email
+            You already have a temporary {PRODUCT_NAME} session. Linking your email
             keeps that activity, including listings you submitted before creating
             a visible account.
           </p>
@@ -655,7 +656,7 @@ export function ContributorAccount() {
       {gate === "check-email" ? (
         <div className="grid gap-4">
           <p className="text-[var(--muted)]">
-            Check your email and open the Local Buzz link on this device to
+            Check your email and open the {PRODUCT_NAME} link on this device to
             finish signing in. The link returns you here.
           </p>
           <button

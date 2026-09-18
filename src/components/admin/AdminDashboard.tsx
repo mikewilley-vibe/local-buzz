@@ -3,6 +3,7 @@
 import { useEffect, useId, useState } from "react";
 import { useRouter } from "next/navigation";
 import { resolveAdminAccess } from "@/lib/admin-access";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { logDevOperationError } from "@/lib/dev-log";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PendingListingsPanel } from "./PendingListingsPanel";
@@ -132,7 +133,8 @@ export function AdminDashboard() {
           </h1>
           <p className="mt-2 text-[var(--muted)]">
             Review pending listings, change reports, listings that need
-            verification, and staff-sourced workbook imports.
+            verification, {PRODUCT_NAME} Scout candidates, and staff-sourced
+            workbook imports.
           </p>
         </div>
         <button

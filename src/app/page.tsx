@@ -2,6 +2,7 @@ import { AgendaCalendar } from "@/components/AgendaCalendar";
 import { CalendarToolbar } from "@/components/CalendarToolbar";
 import { ListingFiltersBar } from "@/components/ListingFilters";
 import { WeekCalendar } from "@/components/WeekCalendar";
+import { PRODUCT_NAME } from "@/lib/brand";
 import {
   formatSelectedArea,
   hasSubmittedConfirmation,
@@ -47,7 +48,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     <div className="grid gap-8">
       <div className="max-w-2xl">
         <p className="text-sm font-medium uppercase tracking-[0.16em] text-[var(--amber-deep)]">
-          Version 1 · Hampton Roads
+          {PRODUCT_NAME} · Hampton Roads
         </p>
         <h1 className="mt-2 font-display text-4xl leading-tight text-[var(--ink)] sm:text-5xl">
           What’s going on this week?
