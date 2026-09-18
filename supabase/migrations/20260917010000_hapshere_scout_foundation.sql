@@ -1,4 +1,5 @@
--- HapsHere Scout foundation.
+-- Local Buzz 757 Scout foundation.
+-- Historical filename and applied SQL retain hapshere_scout identifiers.
 --
 -- This migration creates a private-by-default staging boundary for specials
 -- discovered from public web sources. Candidates never appear in the public

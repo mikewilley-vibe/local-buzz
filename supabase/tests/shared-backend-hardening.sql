@@ -1,5 +1,5 @@
 -- =============================================================================
--- Local Buzz — shared-backend hardening checks (DISPOSABLE LOCAL STACK ONLY)
+-- Local Buzz 757 — shared-backend hardening checks (DISPOSABLE LOCAL STACK ONLY)
 -- =============================================================================
 -- Run AFTER: npx supabase start && npm run db:reset
 -- Then:      psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \

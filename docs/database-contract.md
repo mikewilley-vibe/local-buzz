@@ -1,6 +1,6 @@
-# Local Buzz — database contract
+# Local Buzz 757 — database contract
 
-This document is the source-of-truth guide for the Local Buzz Supabase database
+This document is the source-of-truth guide for the Local Buzz 757 Supabase database
 contract that lives in `supabase/`. It explains what the schema contains, how to
 regenerate artifacts, the migration ordering, the local/remote migration-history
 situation, and the known follow-ups that must be handled as separate, approved
@@ -22,7 +22,7 @@ Point-in-time catalog evidence: `docs/database-contract-evidence-20260904.md`.
 - **Tables (9):** `listings`, `listing_confirmations`, `listing_reports`,
   `admin_users`, `contributor_profiles`, `point_events`, `listing_staff_metadata`,
   `listing_candidates`, and `listing_candidate_evidence`. RLS is enabled on all
-  nine. The two candidate tables form the private HapsHere Scout review boundary.
+  nine. The two candidate tables form the private Local Buzz 757 Scout review boundary.
 - **Enums:** none. Business value sets (cities, listing types, statuses, days,
   report reasons/statuses, point event types) are `text` + CHECK constraints.
 - **Constraints:** 60 named — primary keys, unique constraints, foreign keys to
@@ -100,7 +100,7 @@ migration 4, matching production (the column does not exist in the final schema)
 Migration 5 is a forward-only correction that adds the safe public read boundary,
 tightens listing grants and submission policies, and makes staff imports atomic.
 Migration 6 restores the table privileges required by the existing contributor
-profile RLS policies. Migration 7 adds the private HapsHere Scout candidate and
+profile RLS policies. Migration 7 adds the private Local Buzz 757 Scout candidate and
 evidence tables plus administrator-only publish/reject RPCs. It does not add a
 crawler, an AI provider, or automatic publication; see `docs/hapshere-scout.md`.
 

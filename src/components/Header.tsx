@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PRODUCT_NAME } from "@/lib/brand";
 
 export function Header() {
   return (
@@ -6,7 +7,7 @@ export function Header() {
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link href="/" className="group">
           <p className="font-display text-xl tracking-tight text-[var(--ink)] sm:text-2xl">
-            Local Buzz
+            {PRODUCT_NAME}
           </p>
           <p className="text-xs text-[var(--muted)] sm:text-sm">
             Hampton Roads this week

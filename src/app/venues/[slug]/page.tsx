@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DirectionsLink } from "@/components/DirectionsLink";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
+import { PRODUCT_NAME } from "@/lib/brand";
 import { TYPE_LABELS } from "@/lib/types";
 import { getApprovedVenueBySlug, groupVenueListingsByDay } from "@/lib/venues";
 import { listingScheduleLabel } from "@/lib/week";
@@ -18,7 +19,7 @@ export async function generateMetadata({
   const venue = await getApprovedVenueBySlug(slug);
 
   if (!venue) {
-    return { title: "Venue not found — Local Buzz" };
+    return { title: `Venue not found — ${PRODUCT_NAME}` };
   }
 
   const listingLabel =
@@ -27,8 +28,8 @@ export async function generateMetadata({
       : `${venue.listings.length} current listings`;
 
   return {
-    title: `${venue.name} — Local Buzz`,
-    description: `${venue.name} in ${venue.location.city ?? "Hampton Roads"}. ${listingLabel} on the Local Buzz calendar.`,
+    title: `${venue.name} — ${PRODUCT_NAME}`,
+    description: `${venue.name} in ${venue.location.city ?? "Hampton Roads"}. ${listingLabel} on the ${PRODUCT_NAME} calendar.`,
   };
 }
 

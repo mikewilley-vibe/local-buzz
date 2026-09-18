@@ -1,8 +1,8 @@
-# Supabase local/development configuration for Local Buzz.
+# Supabase local/development configuration for Local Buzz 757.
 #
 # This is a hand-authored starter. If you have the Supabase CLI installed you can
 # regenerate/upgrade it to your CLI version with `supabase init` (then re-apply the
-# Local Buzz specific settings below, especially auth).
+# Local Buzz 757 specific settings below, especially auth).
 #
 # Used by `supabase start` / `supabase db reset` for LOCAL development only.
 # It does not affect the hosted production project.
@@ -36,7 +36,7 @@ site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = ["http://127.0.0.1:3000"]
 jwt_expiry = 3600
 enable_signup = true
-# Local Buzz relies on anonymous visitor sessions (confirmations, submissions).
+# Local Buzz 757 relies on anonymous visitor sessions (confirmations, submissions).
 enable_anonymous_sign_ins = true
 
 [auth.email]

@@ -176,7 +176,7 @@ async function fetchSource(source: ScoutSource) {
   const response = await fetch(source.url, {
     headers: {
       accept: "text/html,application/xhtml+xml",
-      "user-agent": "HapsHere-Scout/1.0 (+https://local-buzz-swart.vercel.app)",
+      "user-agent": "LocalBuzz757-Scout/1.0 (+https://local-buzz-swart.vercel.app)",
     },
     cache: "no-store",
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),

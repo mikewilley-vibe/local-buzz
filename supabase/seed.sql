@@ -1,5 +1,5 @@
 -- =============================================================================
--- Local Buzz — development seed data
+-- Local Buzz 757 — development seed data
 -- =============================================================================
 -- Applied by `supabase db reset` after the migrations, for LOCAL/DEV only.
 --

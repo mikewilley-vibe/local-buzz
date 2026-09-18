@@ -54,7 +54,7 @@ jobs:
           fi
           echo "All hardening checks passed."
 
-      - name: Run HapsHere Scout foundation checks
+      - name: Run Local Buzz 757 Scout foundation checks
         run: |
           set -o pipefail
           psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \

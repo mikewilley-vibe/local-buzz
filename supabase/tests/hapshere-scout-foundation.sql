@@ -1,5 +1,5 @@
 -- =============================================================================
--- HapsHere Scout foundation checks (DISPOSABLE LOCAL STACK ONLY)
+-- Local Buzz 757 Scout foundation checks (DISPOSABLE LOCAL STACK ONLY)
 -- =============================================================================
 \set ON_ERROR_STOP on
 set client_min_messages to notice;
