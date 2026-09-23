@@ -1,5 +1,6 @@
 import { Fraunces, Outfit } from "next/font/google";
 import { Header } from "@/components/Header";
+import { SiteFooter } from "@/components/SiteFooter";
 import { PRODUCT_NAME } from "@/lib/brand";
 import "./globals.css";
 
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 sm:py-10">
           {children}
         </main>
+        <SiteFooter />
       </body>
     </html>
   );
