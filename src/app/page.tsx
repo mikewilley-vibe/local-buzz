@@ -75,6 +75,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           filters={filters}
           submitted={submitted}
           today={easternTodayDay()}
+          week={week}
         />
         <div className="grid gap-1">
           <p className="text-sm text-[var(--muted)]">{listingCountLabel}</p>

@@ -1,4 +1,4 @@
-import { DAYS, DAY_LABELS, isDay, type DayOfWeek, type Listing } from "./types";
+import { DAY_LABELS, isDay, type DayOfWeek, type Listing } from "./types";
 
 export const EASTERN_TIME_ZONE = "America/New_York";
 
@@ -69,21 +69,35 @@ function formatHeadingDate(year: number, month: number, day: number) {
   }).format(new Date(Date.UTC(year, month - 1, day)));
 }
 
-export function getThisWeek(): WeekDay[] {
-  const today = easternDateParts();
-  const todayKey = today.weekday;
-  const todayIndex = DAYS.indexOf(todayKey);
-  const mondayOffset = -todayIndex;
+const UTC_WEEKDAYS = [
+  "sunday",
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+] as const;
 
-  return DAYS.map((key, index) => {
-    const date = addDays(today.year, today.month, today.day, mondayOffset + index);
+function weekdayFromParts(year: number, month: number, day: number): DayOfWeek {
+  const weekday = UTC_WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
+  return isDay(weekday) ? weekday : "monday";
+}
+
+/** Today plus the next six days in Eastern time. Never includes past days. */
+export function getThisWeek(date = new Date()): WeekDay[] {
+  const today = easternDateParts(date);
+
+  return Array.from({ length: 7 }, (_, offset) => {
+    const next = addDays(today.year, today.month, today.day, offset);
+    const key = weekdayFromParts(next.year, next.month, next.day);
     return {
       key,
       label: DAY_LABELS[key],
-      headingDate: formatHeadingDate(date.year, date.month, date.day),
-      dateLabel: formatDateLabel(date.year, date.month, date.day),
-      dayNumber: date.day,
-      isToday: key === todayKey,
+      headingDate: formatHeadingDate(next.year, next.month, next.day),
+      dateLabel: formatDateLabel(next.year, next.month, next.day),
+      dayNumber: next.day,
+      isToday: offset === 0,
     };
   });
 }

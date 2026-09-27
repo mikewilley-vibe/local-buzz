@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listingsHref, type ParsedListingFilters } from "@/lib/filters";
-import { DAYS, DAY_LABELS, type DayOfWeek } from "@/lib/types";
+import type { DayOfWeek } from "@/lib/types";
+import type { WeekDay } from "@/lib/week";
 
 const chipClassName =
   "inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-sm outline-none ring-[var(--amber)] focus-visible:ring-2";
@@ -15,10 +16,12 @@ export function CalendarToolbar({
   filters,
   submitted,
   today,
+  week,
 }: {
   filters: ParsedListingFilters;
   submitted: boolean;
   today: DayOfWeek;
+  week: WeekDay[];
 }) {
   const base = {
     cities: filters.cities,
@@ -63,16 +66,16 @@ export function CalendarToolbar({
           >
             Today
           </Link>
-          {DAYS.map((day) => (
+          {week.map((day) => (
             <Link
-              key={day}
-              href={dayHref(day)}
+              key={`${day.key}-${day.dayNumber}`}
+              href={dayHref(day.key)}
               scroll={false}
-              aria-label={DAY_LABELS[day]}
-              aria-current={filters.day === day ? "page" : undefined}
-              className={chipState(filters.day === day)}
+              aria-label={day.headingDate}
+              aria-current={filters.day === day.key ? "page" : undefined}
+              className={chipState(filters.day === day.key)}
             >
-              {DAY_LABELS[day].slice(0, 3)}
+              {day.label.slice(0, 3)} {day.dayNumber}
             </Link>
           ))}
         </nav>
