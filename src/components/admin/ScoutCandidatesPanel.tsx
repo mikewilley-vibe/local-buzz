@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { revalidatePublicListings } from "@/app/admin/actions";
 import { logDevOperationError } from "@/lib/dev-log";
 import {
+  clipScoutExcerpt,
+  groupScoutCandidatesByVenue,
   GENERIC_HAPPY_HOUR_REJECTION_REASON,
-  compareScoutValue,
   isGenericRecurringPromotion,
 } from "@/lib/scout/value-filter";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -53,16 +54,6 @@ function asScoutValue(candidate: {
     placeName: candidate.place_name,
     startTime: candidate.start_time,
   };
-}
-
-function formatDate(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "Unknown";
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).format(date);
 }
 
 function formatSchedule(candidate: ScoutCandidate) {
@@ -114,12 +105,8 @@ export function ScoutCandidatesPanel({
         }
 
         const rows = (data ?? []) as ScoutCandidate[];
-        rows.sort((left, right) => {
-          const byValue = compareScoutValue(asScoutValue(left), asScoutValue(right));
-          if (byValue !== 0) return byValue;
-          return right.confidence - left.confidence;
-        });
-        setCandidates(rows);
+        const groups = groupScoutCandidatesByVenue(rows);
+        setCandidates(groups.flatMap((group) => group.offers));
       } catch (error) {
         logDevOperationError("load Scout candidates", error);
         if (!cancelled) {
@@ -319,129 +306,105 @@ export function ScoutCandidatesPanel({
           No Scout candidates are waiting for review.
         </p>
       ) : (
-        candidates.map((candidate) => {
-          const busy = savingId === candidate.id;
-          const rejecting = rejectingId === candidate.id;
+        groupScoutCandidatesByVenue(candidates).map((group) => (
+          <article
+            key={`${group.placeName}-${group.city}`}
+            className="grid gap-4 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:p-5"
+          >
+            <div>
+              <h2 className="font-display text-2xl text-[var(--ink)]">{group.placeName}</h2>
+              <p className="text-sm text-[var(--muted)]">{group.city}</p>
+            </div>
 
-          return (
-            <article
-              key={candidate.id}
-              className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:p-5"
-            >
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--amber-deep)]">
-                  Found online · {Math.round(candidate.confidence * 100)}% confidence
-                </p>
-                <h2 className="mt-1 font-display text-2xl text-[var(--ink)]">
-                  {candidate.place_name}
-                </h2>
-                <p className="text-sm text-[var(--muted)]">
-                  {candidate.city} · {candidate.listing_type}
-                </p>
-              </div>
+            {group.offers.map((candidate) => {
+              const busy = savingId === candidate.id;
+              const rejecting = rejectingId === candidate.id;
+              const evidence = candidate.listing_candidate_evidence?.[0];
+              const quote = evidence?.excerpt ? clipScoutExcerpt(evidence.excerpt) : null;
 
-              <dl className="grid gap-2 text-sm">
-                <div>
-                  <dt className="font-medium text-[var(--ink)]">Schedule</dt>
-                  <dd className="text-[var(--muted)]">{formatSchedule(candidate)}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-[var(--ink)]">Last checked</dt>
-                  <dd className="text-[var(--muted)]">{formatDate(candidate.last_checked_at)}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-[var(--ink)]">Evidence expires</dt>
-                  <dd className="text-[var(--muted)]">{formatDate(candidate.expires_at)}</dd>
-                </div>
-              </dl>
+              return (
+                <div
+                  key={candidate.id}
+                  className="grid gap-3 border-t border-[var(--line)] pt-4"
+                >
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--amber-deep)]">
+                    {candidate.listing_type} · {Math.round(candidate.confidence * 100)}% confidence
+                  </p>
+                  <p className="text-sm text-[var(--muted)]">{formatSchedule(candidate)}</p>
+                  <p className="text-sm leading-relaxed text-[var(--ink)]">{candidate.description}</p>
 
-              <p className="text-sm leading-relaxed text-[var(--ink)]">{candidate.description}</p>
-
-              <div className="grid gap-2 rounded-xl bg-[var(--wash)] p-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--amber-deep)]">
-                  Source evidence
-                </p>
-                {candidate.listing_candidate_evidence?.map((evidence) => (
-                  <div key={evidence.id} className="grid gap-1 text-sm">
+                  <div className="grid gap-1 text-sm">
+                    {quote ? <p className="text-[var(--muted)]">“{quote}”</p> : null}
                     <a
-                      href={evidence.source_url}
-                      className="break-all text-[var(--amber-deep)] underline outline-none ring-[var(--amber)] focus-visible:ring-2"
+                      href={evidence?.source_url || candidate.source_url}
+                      className="w-fit text-[var(--amber-deep)] underline outline-none ring-[var(--amber)] focus-visible:ring-2"
                       rel="noopener noreferrer"
                       target="_blank"
                     >
-                      {evidence.source_title || evidence.source_url}
+                      Open source
                     </a>
-                    <p className="text-[var(--muted)]">“{evidence.excerpt}”</p>
                   </div>
-                ))}
-                <a
-                  href={candidate.source_url}
-                  className="break-all text-sm text-[var(--amber-deep)] underline outline-none ring-[var(--amber)] focus-visible:ring-2"
-                  rel="noopener noreferrer"
-                  target="_blank"
-                >
-                  Open primary source
-                </a>
-              </div>
 
-              <label className="grid gap-1 text-sm">
-                <span className="font-medium text-[var(--ink)]">
-                  {rejecting ? "Rejection reason" : "Review note (optional)"}
-                </span>
-                <textarea
-                  value={notes[candidate.id] ?? ""}
-                  onChange={(event) =>
-                    setNotes((current) => ({ ...current, [candidate.id]: event.target.value }))
-                  }
-                  maxLength={rejecting ? 500 : 900}
-                  rows={3}
-                  placeholder={rejecting ? "Why should this candidate be rejected?" : "What did you verify?"}
-                  className="min-h-20 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-[var(--ink)] outline-none ring-[var(--amber)] focus-visible:ring-2"
-                />
-              </label>
+                  <label className="grid gap-1 text-sm">
+                    <span className="font-medium text-[var(--ink)]">
+                      {rejecting ? "Rejection reason" : "Review note (optional)"}
+                    </span>
+                    <textarea
+                      value={notes[candidate.id] ?? ""}
+                      onChange={(event) =>
+                        setNotes((current) => ({ ...current, [candidate.id]: event.target.value }))
+                      }
+                      maxLength={rejecting ? 500 : 900}
+                      rows={2}
+                      placeholder={rejecting ? "Why should this candidate be rejected?" : "What did you verify?"}
+                      className="min-h-16 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2 text-[var(--ink)] outline-none ring-[var(--amber)] focus-visible:ring-2"
+                    />
+                  </label>
 
-              {rejecting ? (
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void reject(candidate)}
-                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--amber-hover)] focus-visible:ring-2 disabled:opacity-60"
-                  >
-                    {busy ? "Saving…" : "Confirm rejection"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setRejectingId(null)}
-                    className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2 disabled:opacity-60"
-                  >
-                    Cancel
-                  </button>
+                  {rejecting ? (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void reject(candidate)}
+                        className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--amber-hover)] focus-visible:ring-2 disabled:opacity-60"
+                      >
+                        {busy ? "Saving…" : "Confirm rejection"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setRejectingId(null)}
+                        className="inline-flex min-h-11 items-center justify-center rounded-full px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2 disabled:opacity-60"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void publish(candidate)}
+                        className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--amber-hover)] focus-visible:ring-2 disabled:opacity-60"
+                      >
+                        {busy ? "Saving…" : "Publish listing"}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => setRejectingId(candidate.id)}
+                        className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2 disabled:opacity-60"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="flex flex-col gap-2 sm:flex-row">
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void publish(candidate)}
-                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--amber)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--amber-hover)] focus-visible:ring-2 disabled:opacity-60"
-                  >
-                    {busy ? "Saving…" : "Publish listing"}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setRejectingId(candidate.id)}
-                    className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2 disabled:opacity-60"
-                  >
-                    Reject
-                  </button>
-                </div>
-              )}
-            </article>
-          );
-        })
+              );
+            })}
+          </article>
+        ))
       )}
     </div>
   );

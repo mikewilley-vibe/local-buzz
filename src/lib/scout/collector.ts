@@ -33,7 +33,8 @@ type ScoutCandidateInsert = Database["public"]["Tables"]["listing_candidates"]["
 
 const MAX_SOURCE_BYTES = 1_000_000;
 const FETCH_TIMEOUT_MS = 12_000;
-const MAX_EXCERPT_LENGTH = 4_000;
+const MAX_MODEL_EXCERPT_LENGTH = 4_000;
+const MAX_EVIDENCE_EXCERPT_LENGTH = 180;
 const ALLOWED_CITIES = new Set([
   "Norfolk",
   "Virginia Beach",
@@ -101,14 +102,22 @@ function htmlToText(html: string) {
     .trim();
 }
 
-function sourceExcerpt(html: string) {
+function sameSchedule(left: string[], right: string[]) {
+  return [...left].sort().join(",") === [...right].sort().join(",");
+}
+
+function sourceExcerpt(html: string, hint = "", maxLength = MAX_MODEL_EXCERPT_LENGTH) {
   const body = htmlToText(html);
-  const match = body.search(
-    /happy hour|specials?|trivia|music bingo|live music|weekly events?/i,
-  );
-  if (match < 0) return body.slice(0, MAX_EXCERPT_LENGTH);
-  const start = Math.max(0, match - 600);
-  return body.slice(start, start + MAX_EXCERPT_LENGTH);
+  const needle = hint.replace(/\s+/g, " ").trim().slice(0, 48);
+  let match = needle ? body.toLowerCase().indexOf(needle.toLowerCase()) : -1;
+  if (match < 0) {
+    match = body.search(
+      /trivia|karaoke|comedy|bingo|live music|taco tuesday|happy hour|specials?|weekly events?/i,
+    );
+  }
+  const padding = maxLength > 400 ? 600 : 24;
+  const start = match < 0 ? 0 : Math.max(0, match - padding);
+  return body.slice(start, start + maxLength);
 }
 
 function parseJsonObject(value: string) {
@@ -154,7 +163,7 @@ function validateCandidate(value: unknown, source: ScoutSource): ExtractedCandid
   if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
 
   const extracted: ExtractedCandidate = {
-    dedupeKey: candidateDedupeKey(source.id, listingType, days),
+    dedupeKey: candidateDedupeKey(placeName, city, listingType, days),
     placeName,
     city,
     listingType,
@@ -327,6 +336,30 @@ export async function collectScoutSources(sourceIds?: string[]) {
         if (publishedError) throw publishedError;
         if (publishedMatch && publishedMatch.length > 0) continue;
 
+        const { data: siblings, error: siblingError } = await supabase
+          .from("listing_candidates")
+          .select("id, status, days")
+          .eq("city", candidate.city)
+          .eq("listing_type", candidate.listingType)
+          .ilike("place_name", candidate.placeName);
+        if (siblingError) throw siblingError;
+        const matching = (siblings ?? []).filter((row) =>
+          sameSchedule(row.days, candidate.days),
+        );
+        if (matching.some((row) => row.status !== "pending_review")) continue;
+
+        const { data: keyed, error: keyedError } = await supabase
+          .from("listing_candidates")
+          .select("id, status")
+          .eq("dedupe_key", candidate.dedupeKey)
+          .maybeSingle();
+        if (keyedError) throw keyedError;
+        if (keyed && keyed.status !== "pending_review") continue;
+
+        const existing =
+          matching.find((row) => row.status === "pending_review") ??
+          (keyed?.status === "pending_review" ? keyed : null);
+
         const candidateFields: ScoutCandidateInsert = {
           dedupe_key: candidate.dedupeKey,
           place_name: candidate.placeName,
@@ -345,14 +378,6 @@ export async function collectScoutSources(sourceIds?: string[]) {
           last_checked_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         };
-        const { data: existing, error: existingError } = await supabase
-          .from("listing_candidates")
-          .select("id, status")
-          .eq("dedupe_key", candidate.dedupeKey)
-          .maybeSingle();
-        if (existingError) throw existingError;
-        if (existing && existing.status !== "pending_review") continue;
-
         const candidateQuery = existing
           ? supabase
               .from("listing_candidates")
@@ -369,7 +394,11 @@ export async function collectScoutSources(sourceIds?: string[]) {
           source_url: source.url,
           source_kind: source.sourceKind,
           source_title: source.placeName,
-          excerpt: sourceExcerpt(html),
+          excerpt: sourceExcerpt(
+            html,
+            candidate.description,
+            MAX_EVIDENCE_EXCERPT_LENGTH,
+          ),
           captured_at: new Date().toISOString(),
         };
         const { error: evidenceError } = await supabase

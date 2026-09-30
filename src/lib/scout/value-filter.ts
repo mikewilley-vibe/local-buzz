@@ -89,11 +89,108 @@ export function compareScoutValue(a: ScoutValueInput, b: ScoutValueInput) {
   return scoutValueRank(a) - scoutValueRank(b);
 }
 
+export function scoutOfferKey(input: {
+  placeName: string;
+  city: string;
+  listingType: string;
+  days: string[];
+}) {
+  return [
+    input.placeName.trim().toLowerCase(),
+    input.city.trim().toLowerCase(),
+    input.listingType,
+    [...input.days].sort().join(","),
+  ].join("|");
+}
+
 export function candidateDedupeKey(
-  sourceId: string,
+  placeName: string,
+  city: string,
   listingType: string,
   days: string[],
 ) {
-  const schedule = [...days].sort().join(",");
-  return `${sourceId}:${listingType}:${schedule}`.toLowerCase().slice(0, 200);
+  return scoutOfferKey({ placeName, city, listingType, days })
+    .replace(/[^a-z0-9|,]+/g, "-")
+    .slice(0, 200);
+}
+
+export const REVIEW_EXCERPT_LENGTH = 180;
+
+export type ScoutReviewCandidate = {
+  id: string;
+  place_name: string;
+  city: string;
+  listing_type: string;
+  days: string[];
+  start_time: string | null;
+  description: string;
+  confidence: number;
+};
+
+export function clipScoutExcerpt(excerpt: string, maxLength = REVIEW_EXCERPT_LENGTH) {
+  const normalized = excerpt.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  const clipped = normalized.slice(0, maxLength).replace(/\s+\S*$/, "").trimEnd();
+  return `${clipped || normalized.slice(0, maxLength)}…`;
+}
+
+export function collapseScoutDuplicates<T extends ScoutReviewCandidate>(candidates: T[]) {
+  const best = new Map<string, T>();
+  for (const candidate of candidates) {
+    const key = scoutOfferKey({
+      placeName: candidate.place_name,
+      city: candidate.city,
+      listingType: candidate.listing_type,
+      days: candidate.days,
+    });
+    const existing = best.get(key);
+    if (!existing || candidate.confidence > existing.confidence) {
+      best.set(key, candidate);
+    }
+  }
+  return [...best.values()];
+}
+
+export function groupScoutCandidatesByVenue<T extends ScoutReviewCandidate>(candidates: T[]) {
+  const unique = collapseScoutDuplicates(candidates);
+  unique.sort((left, right) => {
+    const byValue = compareScoutValue(
+      {
+        listingType: left.listing_type,
+        days: left.days,
+        description: left.description,
+        placeName: left.place_name,
+        startTime: left.start_time,
+      },
+      {
+        listingType: right.listing_type,
+        days: right.days,
+        description: right.description,
+        placeName: right.place_name,
+        startTime: right.start_time,
+      },
+    );
+    if (byValue !== 0) return byValue;
+    const byPlace = left.place_name.localeCompare(right.place_name);
+    if (byPlace !== 0) return byPlace;
+    return right.confidence - left.confidence;
+  });
+
+  const groups: Array<{ placeName: string; city: string; offers: T[] }> = [];
+  const index = new Map<string, (typeof groups)[number]>();
+  for (const candidate of unique) {
+    const key = `${candidate.place_name.trim().toLowerCase()}|${candidate.city}`;
+    let group = index.get(key);
+    if (!group) {
+      group = {
+        placeName: candidate.place_name,
+        city: candidate.city,
+        offers: [],
+      };
+      index.set(key, group);
+      groups.push(group);
+    }
+    group.offers.push(candidate);
+  }
+  return groups;
 }
