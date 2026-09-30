@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:scout": "node --experimental-strip-types --test src/lib/scout/value-filter.test.ts",
     "db:types": "supabase gen types typescript --local --schema public > src/lib/database.types.ts",
     "db:reset": "supabase db reset"
   },

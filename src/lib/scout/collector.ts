@@ -1,5 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import {
+  candidateDedupeKey,
+  isGenericRecurringPromotion,
+} from "@/lib/scout/value-filter";
 
 export type ScoutSource = {
   id: string;
@@ -149,13 +153,8 @@ function validateCandidate(value: unknown, source: ScoutSource): ExtractedCandid
   if (days.length === 0 || !description || !/^https?:\/\//i.test(sourceUrl)) return null;
   if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) return null;
 
-  const dedupeKey = text(candidate.dedupeKey, 200) ||
-    `${city}:${placeName}:${listingType}:${days.join(",")}:${description.slice(0, 80)}`
-      .toLowerCase()
-      .replace(/[^a-z0-9:,-]+/g, "-");
-
-  return {
-    dedupeKey,
+  const extracted: ExtractedCandidate = {
+    dedupeKey: candidateDedupeKey(source.id, listingType, days),
     placeName,
     city,
     listingType,
@@ -170,6 +169,10 @@ function validateCandidate(value: unknown, source: ScoutSource): ExtractedCandid
       : null,
     confidence,
   };
+
+  if (isGenericRecurringPromotion(extracted)) return null;
+
+  return extracted;
 }
 
 async function fetchSource(source: ScoutSource) {
@@ -211,7 +214,7 @@ async function extractWithOpenAi(source: ScoutSource, html: string) {
         {
           role: "system",
           content:
-            "Extract only current, explicitly stated local specials or recurring events. Do not invent missing dates, times, prices, or details. Return an empty candidates array when the page does not contain a clear offer or event.",
+            "Extract only current, explicitly stated special events or concrete deals. Keep trivia, music bingo, karaoke, comedy, live music, themed nights, named food nights, limited-time offers, and specials with a specific price or percent off. Do not extract generic daily, weekday, or every-day happy hours or vague drink specials with no event, price, or named night. Happy hour may be supporting detail, not the listing itself. Do not invent missing dates, times, prices, or details. Return an empty candidates array when the page does not contain a clear event or deal.",
         },
         {
           role: "user",
@@ -311,7 +314,19 @@ export async function collectScoutSources(sourceIds?: string[]) {
     try {
       const html = await fetchSource(source);
       const candidates = await extractWithOpenAi(source, html);
+      let savedCount = 0;
       for (const candidate of candidates) {
+        const { data: publishedMatch, error: publishedError } = await supabase
+          .from("listings")
+          .select("id")
+          .eq("status", "approved")
+          .eq("place_name", candidate.placeName)
+          .eq("city", candidate.city)
+          .eq("listing_type", candidate.listingType)
+          .limit(1);
+        if (publishedError) throw publishedError;
+        if (publishedMatch && publishedMatch.length > 0) continue;
+
         const candidateFields: ScoutCandidateInsert = {
           dedupe_key: candidate.dedupeKey,
           place_name: candidate.placeName,
@@ -361,8 +376,9 @@ export async function collectScoutSources(sourceIds?: string[]) {
           .from("listing_candidate_evidence")
           .upsert(evidence, { onConflict: "candidate_id,source_url" });
         if (evidenceError) throw evidenceError;
+        savedCount += 1;
       }
-      results.push({ sourceId: source.id, candidates: candidates.length });
+      results.push({ sourceId: source.id, candidates: savedCount });
     } catch (error) {
       results.push({
         sourceId: source.id,

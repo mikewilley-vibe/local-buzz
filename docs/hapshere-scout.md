@@ -44,9 +44,15 @@ and uses the server-side `OPENAI_API_KEY` to extract structured candidates.
 
 The service-role key and model key are server-only. The route upserts candidates
 and source evidence into the private Scout tables; it never calls the public
-listing import RPC and never publishes a candidate. Begin with official venue
-websites and event pages. Add social sources only after their terms, access
-method, and evidence quality have been reviewed.
+listing import RPC and never publishes a candidate.
+
+Scout is a special-events collector. Generic daily or weekday happy hours without
+a named event, themed night, or concrete price/percent deal are not stored.
+Existing pending generic candidates can be rejected from Scout review without
+deleting the rows. Matching public listings are marked `outdated` so they leave
+the app. Review ranking prefers named events with a time or date, then recurring
+named events, then specific deals, then limited-time promotions.
+
 
 Keep the collector disabled in production until the development source catalog
 has been reviewed and the route has been exercised with a small Norfolk pilot.
