@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { revalidatePublicListings } from "@/app/admin/actions";
 import { logDevOperationError } from "@/lib/dev-log";
+import {
+  GENERIC_HAPPY_HOUR_REJECTION_REASON,
+  compareScoutValue,
+  isGenericRecurringPromotion,
+} from "@/lib/scout/value-filter";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Evidence = {
@@ -32,6 +37,23 @@ type ScoutCandidate = {
 
 const LOAD_ERROR = "Couldn’t load Scout candidates. Please try again.";
 const ACTION_ERROR = "Couldn’t update that Scout candidate. Please try again.";
+const CLEANUP_ERROR = "Couldn’t clean up generic happy hours. Please try again.";
+
+function asScoutValue(candidate: {
+  listing_type: string;
+  days: string[];
+  description: string;
+  place_name?: string;
+  start_time?: string | null;
+}) {
+  return {
+    listingType: candidate.listing_type,
+    days: candidate.days,
+    description: candidate.description,
+    placeName: candidate.place_name,
+    startTime: candidate.start_time,
+  };
+}
 
 function formatDate(value: string) {
   const date = new Date(value);
@@ -61,6 +83,8 @@ export function ScoutCandidatesPanel({
   const [savingId, setSavingId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [cleaning, setCleaning] = useState(false);
+  const [cleanupMessage, setCleanupMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,7 +113,13 @@ export function ScoutCandidatesPanel({
           return;
         }
 
-        setCandidates((data ?? []) as ScoutCandidate[]);
+        const rows = (data ?? []) as ScoutCandidate[];
+        rows.sort((left, right) => {
+          const byValue = compareScoutValue(asScoutValue(left), asScoutValue(right));
+          if (byValue !== 0) return byValue;
+          return right.confidence - left.confidence;
+        });
+        setCandidates(rows);
       } catch (error) {
         logDevOperationError("load Scout candidates", error);
         if (!cancelled) {
@@ -138,6 +168,88 @@ export function ScoutCandidatesPanel({
     }
   }
 
+  async function rejectGenericHappyHours() {
+    const generic = candidates.filter((candidate) =>
+      isGenericRecurringPromotion(asScoutValue(candidate)),
+    );
+    const confirmed = window.confirm(
+      generic.length > 0
+        ? `Reject ${generic.length} generic happy-hour candidate${generic.length === 1 ? "" : "s"} and hide matching public listings? Records stay in the database.`
+        : "Hide matching generic happy-hour listings from the public app? Records stay in the database.",
+    );
+    if (!confirmed) return;
+
+    setCleaning(true);
+    setErrorMessage(null);
+    setCleanupMessage(null);
+
+    try {
+      const supabase = createSupabaseBrowserClient();
+      let rejectedCount = 0;
+      for (const candidate of generic) {
+        const { error } = await supabase.rpc("reject_listing_candidate", {
+          p_candidate_id: candidate.id,
+          p_reason: GENERIC_HAPPY_HOUR_REJECTION_REASON,
+        });
+        if (error) {
+          logDevOperationError("reject generic Scout candidate", error);
+          setErrorMessage(CLEANUP_ERROR);
+          return;
+        }
+        rejectedCount += 1;
+      }
+
+      const { data: listings, error: listingsError } = await supabase
+        .from("listings")
+        .select("id, place_name, listing_type, days, description, start_time, status")
+        .eq("status", "approved");
+      if (listingsError) {
+        logDevOperationError("load listings for generic happy-hour cleanup", listingsError);
+        setErrorMessage(CLEANUP_ERROR);
+        return;
+      }
+
+      let outdatedCount = 0;
+      for (const listing of listings ?? []) {
+        if (
+          !isGenericRecurringPromotion({
+            listingType: listing.listing_type,
+            days: listing.days,
+            description: listing.description,
+            placeName: listing.place_name,
+            startTime: listing.start_time,
+          })
+        ) {
+          continue;
+        }
+        const { error } = await supabase
+          .from("listings")
+          .update({ status: "outdated" })
+          .eq("id", listing.id)
+          .eq("status", "approved");
+        if (error) {
+          logDevOperationError("outdate generic happy-hour listing", error);
+          setErrorMessage(CLEANUP_ERROR);
+          return;
+        }
+        outdatedCount += 1;
+      }
+
+      setCandidates((current) =>
+        current.filter((candidate) => !isGenericRecurringPromotion(asScoutValue(candidate))),
+      );
+      await revalidatePublicListings();
+      setCleanupMessage(
+        `Rejected ${rejectedCount} Scout candidate${rejectedCount === 1 ? "" : "s"} and marked ${outdatedCount} public listing${outdatedCount === 1 ? "" : "s"} outdated.`,
+      );
+    } catch (error) {
+      logDevOperationError("clean up generic happy hours", error);
+      setErrorMessage(CLEANUP_ERROR);
+    } finally {
+      setCleaning(false);
+    }
+  }
+
   async function reject(candidate: ScoutCandidate) {
     const reason = notes[candidate.id]?.trim() || "Evidence was not sufficient for publication.";
     setSavingId(candidate.id);
@@ -181,6 +293,26 @@ export function ScoutCandidatesPanel({
           {errorMessage}
         </p>
       ) : null}
+
+      {cleanupMessage ? (
+        <p className="text-sm text-[var(--ink)]" role="status">
+          {cleanupMessage}
+        </p>
+      ) : null}
+
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-[var(--muted)]">
+          Scout should keep named events and concrete deals, not everyday happy hour.
+        </p>
+        <button
+          type="button"
+          disabled={cleaning}
+          onClick={() => void rejectGenericHappyHours()}
+          className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--line)] px-4 py-2 text-sm font-medium text-[var(--ink)] outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2 disabled:opacity-60"
+        >
+          {cleaning ? "Cleaning…" : "Reject generic happy hours"}
+        </button>
+      </div>
 
       {candidates.length === 0 ? (
         <p className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-6 text-sm text-[var(--muted)]">
