@@ -115,6 +115,7 @@ export function candidateDedupeKey(
 }
 
 export const REVIEW_EXCERPT_LENGTH = 180;
+export const MAX_LISTINGS_PER_ESTABLISHMENT = 5;
 
 export type ScoutReviewCandidate = {
   id: string;
@@ -191,6 +192,9 @@ export function groupScoutCandidatesByVenue<T extends ScoutReviewCandidate>(cand
       groups.push(group);
     }
     group.offers.push(candidate);
+  }
+  for (const group of groups) {
+    group.offers = group.offers.slice(0, MAX_LISTINGS_PER_ESTABLISHMENT);
   }
   return groups;
 }

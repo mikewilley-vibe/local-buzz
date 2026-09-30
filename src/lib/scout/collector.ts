@@ -2,7 +2,9 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import {
   candidateDedupeKey,
+  compareScoutValue,
   isGenericRecurringPromotion,
+  MAX_LISTINGS_PER_ESTABLISHMENT,
 } from "@/lib/scout/value-filter";
 
 export type ScoutSource = {
@@ -322,7 +324,31 @@ export async function collectScoutSources(sourceIds?: string[]) {
   for (const source of sources) {
     try {
       const html = await fetchSource(source);
-      const candidates = await extractWithOpenAi(source, html);
+      const candidates = [...(await extractWithOpenAi(source, html))].sort((left, right) => {
+        const byValue = compareScoutValue(left, right);
+        if (byValue !== 0) return byValue;
+        return right.confidence - left.confidence;
+      });
+
+      const { count: pendingCount, error: pendingCountError } = await supabase
+        .from("listing_candidates")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending_review")
+        .eq("city", source.city)
+        .ilike("place_name", source.placeName);
+      if (pendingCountError) throw pendingCountError;
+      const { count: approvedCount, error: approvedCountError } = await supabase
+        .from("listings")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "approved")
+        .eq("city", source.city)
+        .ilike("place_name", source.placeName);
+      if (approvedCountError) throw approvedCountError;
+      let remainingSlots = Math.max(
+        0,
+        MAX_LISTINGS_PER_ESTABLISHMENT - (pendingCount ?? 0) - (approvedCount ?? 0),
+      );
+
       let savedCount = 0;
       for (const candidate of candidates) {
         const { data: publishedMatch, error: publishedError } = await supabase
@@ -359,6 +385,7 @@ export async function collectScoutSources(sourceIds?: string[]) {
         const existing =
           matching.find((row) => row.status === "pending_review") ??
           (keyed?.status === "pending_review" ? keyed : null);
+        if (!existing && remainingSlots <= 0) continue;
 
         const candidateFields: ScoutCandidateInsert = {
           dedupe_key: candidate.dedupeKey,
@@ -405,6 +432,7 @@ export async function collectScoutSources(sourceIds?: string[]) {
           .from("listing_candidate_evidence")
           .upsert(evidence, { onConflict: "candidate_id,source_url" });
         if (evidenceError) throw evidenceError;
+        if (!existing) remainingSlots -= 1;
         savedCount += 1;
       }
       results.push({ sourceId: source.id, candidates: savedCount });

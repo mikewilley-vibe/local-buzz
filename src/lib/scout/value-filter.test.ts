@@ -178,3 +178,19 @@ test("groups remaining offers under one venue", () => {
   assert.equal(groups.length, 1);
   assert.equal(groups[0]?.offers.length, 2);
 });
+
+test("keeps at most five listings for one establishment", () => {
+  const groups = groupScoutCandidatesByVenue(
+    Array.from({ length: 7 }, (_, index) => ({
+      id: `offer-${index}`,
+      place_name: "COVA Brewing Company",
+      city: "Norfolk",
+      listing_type: "food-special",
+      days: ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].slice(index, index + 1),
+      start_time: null,
+      description: `Daily special ${index}`,
+      confidence: 0.5 + index / 20,
+    })),
+  );
+  assert.equal(groups[0]?.offers.length, 5);
+});
