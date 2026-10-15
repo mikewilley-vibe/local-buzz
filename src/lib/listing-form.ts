@@ -92,8 +92,17 @@ export function listingFormToUpdate(listing: ListingFormValues) {
   };
 }
 
+function isSubmittedCity(
+  city: string,
+  allowedCities: readonly City[] | undefined,
+): city is City {
+  if (allowedCities) return (allowedCities as readonly string[]).includes(city);
+  return isCity(city);
+}
+
 export function parseListingFormData(
   formData: FormData,
+  options: { cities?: readonly City[] } = {},
 ): { error: string } | { listing: ListingFormValues } {
   const placeName = String(formData.get("placeName") ?? "").trim();
   const city = String(formData.get("city") ?? "").trim();
@@ -110,7 +119,16 @@ export function parseListingFormData(
     .filter(isDay);
 
   if (!placeName) return { error: "Please add the bar or restaurant name." };
-  if (!isCity(city)) return { error: "Please pick a Hampton Roads city." };
+  const allowedCities = options.cities;
+  if (!isSubmittedCity(city, allowedCities)) {
+    if (allowedCities?.length === 1 && allowedCities[0] === "Richmond") {
+      return { error: "Please pick Richmond." };
+    }
+    if (allowedCities) {
+      return { error: "Please pick a Hampton Roads city." };
+    }
+    return { error: "Please pick a supported city." };
+  }
   if (!isListingType(type)) {
     return { error: "Please pick what kind of listing this is." };
   }

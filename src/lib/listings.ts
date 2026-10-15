@@ -2,7 +2,9 @@ import { cache } from "react";
 import { logDevOperationError } from "@/lib/dev-log";
 import { listingMatchesZipFilter } from "@/lib/location";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { isRegion, type Region } from "@/lib/region";
 import {
+  cityInRegion,
   isCity,
   isListingType,
   normalizeListingDays,
@@ -25,6 +27,7 @@ type ListingRow = {
   zip_code?: string | null;
   confirmation_count?: number | null;
   last_verified_at?: string | null;
+  region?: string | null;
 };
 
 const LISTING_ID_PATTERN =
@@ -35,10 +38,13 @@ export function isListingId(value: string) {
 }
 
 export async function getListings(
-  filters: ListingFilters = {},
+  filters: ListingFilters & { region?: Region } = {},
 ): Promise<Listing[]> {
   const supabase = createSupabaseServerClient();
-  let query = supabase.rpc("get_public_listings", { p_listing_id: null });
+  let query = supabase.rpc("get_public_listings", {
+    p_listing_id: null,
+    p_region: filters.region ?? null,
+  });
 
   if (filters.type && isListingType(filters.type)) {
     query = query.eq("listing_type", filters.type);
@@ -49,13 +55,30 @@ export async function getListings(
     nullsFirst: false,
   });
 
+  let rows = (data ?? []) as ListingRow[];
   if (error) {
-    logDevOperationError("load approved listings", error);
-    throw new Error("Could not load listings.");
+    if (!(filters.region && regionArgumentMissing(error))) {
+      logDevOperationError("load approved listings", error);
+      throw new Error("Could not load listings.");
+    }
+
+    const fallback = await supabase.rpc("get_public_listings", {
+      p_listing_id: null,
+    });
+    if (fallback.error) {
+      logDevOperationError("load approved listings", fallback.error);
+      throw new Error("Could not load listings.");
+    }
+    rows = ((fallback.data ?? []) as ListingRow[]).filter((row) => {
+      if (!cityInRegion(row.city, filters.region as Region)) return false;
+      if (filters.type && isListingType(filters.type) && row.listing_type !== filters.type) {
+        return false;
+      }
+      return true;
+    });
   }
 
   const seen = new Set<string>();
-  const rows = (data ?? []) as ListingRow[];
   const listings = rows.flatMap((row) => {
     try {
       const listing = mapListingRow(row as ListingRow);
@@ -158,7 +181,23 @@ function mapListingRow(row: ListingRow): Listing | null {
     sourceUrl: row.source_url,
     streetAddress: row.street_address?.trim() || null,
     zipCode: row.zip_code?.trim() || null,
+    region: isRegion(row.region)
+      ? row.region
+      : cityInRegion(cityRaw, "rva")
+        ? "rva"
+        : isCity(cityRaw)
+          ? "757"
+          : null,
     confirmationCount: Number(row.confirmation_count ?? 0),
     lastVerifiedAt: row.last_verified_at ?? null,
   };
+}
+
+function regionArgumentMissing(error: { code?: string; message?: string }) {
+  const message = error.message ?? "";
+  return (
+    error.code === "PGRST202" ||
+    /could not find the function/i.test(message) ||
+    /p_region/i.test(message)
+  );
 }

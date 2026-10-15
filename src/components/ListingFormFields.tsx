@@ -6,9 +6,11 @@ import {
   TYPE_LABELS,
   isCity,
   isListingType,
+  type City,
 } from "@/lib/types";
 import type { ListingFormSeed } from "@/lib/listing-form";
-import { STREET_ADDRESS_MAX } from "@/lib/location";
+import { STREET_ADDRESS_MAX, zipHintForRegion } from "@/lib/location";
+import type { Region } from "@/lib/region";
 
 const fieldClass =
   "min-h-11 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-3 py-2.5 text-[var(--ink)] outline-none ring-[var(--amber)] focus:ring-2";
@@ -17,13 +19,18 @@ export function ListingFormFields({
   defaultValues,
   disabled = false,
   idPrefix,
+  cities = CITIES,
+  region = "757",
 }: {
   defaultValues?: Partial<ListingFormSeed>;
   disabled?: boolean;
   idPrefix: string;
+  cities?: readonly City[];
+  region?: Region;
 }) {
   const cityValue = defaultValues?.city ?? "";
   const typeValue = defaultValues?.type ?? "";
+  const zipExample = region === "rva" ? "23220" : "23510";
 
   return (
     <>
@@ -58,7 +65,7 @@ export function ListingFormFields({
             <option value="" disabled>
               Choose a city
             </option>
-            {CITIES.map((city) => (
+            {cities.map((city) => (
               <option key={city} value={city}>
                 {city}
               </option>
@@ -119,15 +126,15 @@ export function ListingFormFields({
           name="zipCode"
           autoComplete="postal-code"
           pattern="\d{5}(-\d{4})?"
-          title="Use 5 digits or ZIP+4, like 23510 or 23510-1234"
+          title={zipHintForRegion(region)}
           disabled={disabled}
           defaultValue={defaultValues?.zipCode ?? ""}
-          placeholder="23510"
+          placeholder={zipExample}
           aria-describedby={`${idPrefix}-zipCode-hint`}
           className={fieldClass}
         />
         <span id={`${idPrefix}-zipCode-hint`} className="text-sm text-[var(--muted)]">
-          5-digit ZIP or ZIP+4, like 23510 or 23510-1234.
+          5-digit ZIP or ZIP+4, like {zipExample} or {zipExample}-1234.
         </span>
       </label>
 

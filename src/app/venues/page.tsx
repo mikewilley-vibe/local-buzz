@@ -1,19 +1,26 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PRODUCT_NAME } from "@/lib/brand";
+import { regionLabel, regionPlaceName } from "@/lib/region";
+import { getRequestRegion } from "@/lib/request-region";
 import { getApprovedVenueDirectory } from "@/lib/venues";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const fetchCache = "force-no-store";
 
-export const metadata: Metadata = {
-  title: `Venues — ${PRODUCT_NAME}`,
-  description: `Approved Hampton Roads bars and restaurants with current ${PRODUCT_NAME} listings.`,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const region = await getRequestRegion();
+  const place = regionPlaceName(region);
+  return {
+    title: `Venues — ${PRODUCT_NAME}`,
+    description: `Approved ${place} bars and restaurants with current ${PRODUCT_NAME} listings.`,
+  };
+}
 
 export default async function VenuesPage() {
-  const venues = await getApprovedVenueDirectory();
+  const region = await getRequestRegion();
+  const venues = await getApprovedVenueDirectory(region);
   const countLabel =
     venues.length === 1 ? "1 venue" : `${venues.length} venues`;
 
@@ -21,7 +28,7 @@ export default async function VenuesPage() {
     <div className="grid gap-8">
       <div className="max-w-2xl">
         <p className="text-sm font-medium uppercase tracking-[0.16em] text-[var(--amber-deep)]">
-          Hampton Roads
+          {regionLabel(region)}
         </p>
         <h1 className="mt-2 font-display text-4xl leading-tight text-[var(--ink)] sm:text-5xl">
           Venues
@@ -51,7 +58,7 @@ export default async function VenuesPage() {
             return (
               <li key={venue.slug}>
                 <Link
-                  href={`/venues/${venue.slug}`}
+                  href={`/venues/${venue.slug}?region=${region}`}
                   className="block rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 outline-none ring-[var(--amber)] hover:bg-[var(--wash)] focus-visible:ring-2"
                 >
                   <h2 className="font-display text-xl leading-snug text-[var(--ink)]">

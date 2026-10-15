@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { resolveAdminAccess } from "@/lib/admin-access";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { logDevOperationError } from "@/lib/dev-log";
+import { regionLabel, type RegionFilter } from "@/lib/region";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { PendingListingsPanel } from "./PendingListingsPanel";
 import { PendingReportsPanel } from "./PendingReportsPanel";
@@ -16,6 +17,7 @@ type Gate = "loading" | "forbidden" | "ready";
 type Tab = "listings" | "reports" | "verification" | "scout" | "import";
 
 const TABS: Tab[] = ["listings", "reports", "verification", "scout", "import"];
+const REGION_FILTERS: RegionFilter[] = ["all", "757", "rva"];
 
 export function AdminDashboard() {
   const router = useRouter();
@@ -27,6 +29,7 @@ export function AdminDashboard() {
   const [verificationCount, setVerificationCount] = useState(0);
   const [scoutCount, setScoutCount] = useState(0);
   const [signingOut, setSigningOut] = useState(false);
+  const [regionFilter, setRegionFilter] = useState<RegionFilter>("all");
 
   useEffect(() => {
     let cancelled = false;
@@ -148,6 +151,33 @@ export function AdminDashboard() {
       </div>
 
       <div
+        role="group"
+        aria-label="Region"
+        className="flex flex-wrap items-center gap-2"
+      >
+        <span className="text-sm font-medium text-[var(--ink)]">Region</span>
+        {REGION_FILTERS.map((option) => {
+          const selected = option === regionFilter;
+          const label = option === "all" ? "All" : regionLabel(option);
+          return (
+            <button
+              key={option}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setRegionFilter(option)}
+              className={`inline-flex min-h-11 items-center rounded-full px-3 py-1.5 text-sm font-medium outline-none ring-[var(--amber)] focus-visible:ring-2 ${
+                selected
+                  ? "bg-[var(--amber)] text-[var(--ink)]"
+                  : "border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--wash)]"
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      <div
         role="tablist"
         aria-label="Moderation queues"
         className="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
@@ -251,7 +281,10 @@ export function AdminDashboard() {
         aria-labelledby={listingsTabId}
         hidden={tab !== "listings"}
       >
-        <PendingListingsPanel onCountChange={setListingCount} />
+        <PendingListingsPanel
+          regionFilter={regionFilter}
+          onCountChange={setListingCount}
+        />
       </div>
       <div
         id={reportsPanelId}
@@ -267,7 +300,10 @@ export function AdminDashboard() {
         aria-labelledby={verificationTabId}
         hidden={tab !== "verification"}
       >
-        <NeedsVerificationPanel onCountChange={setVerificationCount} />
+        <NeedsVerificationPanel
+          regionFilter={regionFilter}
+          onCountChange={setVerificationCount}
+        />
       </div>
       <div
         id={scoutPanelId}
@@ -275,7 +311,10 @@ export function AdminDashboard() {
         aria-labelledby={scoutTabId}
         hidden={tab !== "scout"}
       >
-        <ScoutCandidatesPanel onCountChange={setScoutCount} />
+        <ScoutCandidatesPanel
+          regionFilter={regionFilter}
+          onCountChange={setScoutCount}
+        />
       </div>
       <div
         id={importPanelId}

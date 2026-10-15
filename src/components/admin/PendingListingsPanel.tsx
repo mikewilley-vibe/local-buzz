@@ -5,7 +5,9 @@ import { revalidatePublicListings } from "@/app/admin/actions";
 import { listingPreview } from "@/lib/admin";
 import { logDevOperationError } from "@/lib/dev-log";
 import { seedFromListingRow } from "@/lib/listing-form";
+import { regionLabel, type RegionFilter } from "@/lib/region";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { cityMatchesRegionFilter } from "@/lib/types";
 import { formatDisplayDate, formatVerifiedDate } from "@/lib/week";
 import { DirectionsLink } from "@/components/DirectionsLink";
 import {
@@ -52,8 +54,10 @@ function mapPendingRow(
 }
 
 export function PendingListingsPanel({
+  regionFilter,
   onCountChange,
 }: {
+  regionFilter: RegionFilter;
   onCountChange: (count: number) => void;
 }) {
   const [listings, setListings] = useState<PendingListing[]>([]);
@@ -132,9 +136,13 @@ export function PendingListingsPanel({
     };
   }, []);
 
+  const visibleListings = listings.filter((listing) =>
+    cityMatchesRegionFilter(listing.values.city, regionFilter),
+  );
+
   useEffect(() => {
-    onCountChange(listings.length);
-  }, [listings.length, onCountChange]);
+    onCountChange(visibleListings.length);
+  }, [visibleListings.length, onCountChange]);
 
   async function updateStatus(id: string, action: ListingAction) {
     setErrorMessage(null);
@@ -211,12 +219,14 @@ export function PendingListingsPanel({
         </p>
       ) : null}
 
-      {listings.length === 0 ? (
+      {visibleListings.length === 0 ? (
         <p className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-6 text-sm text-[var(--muted)]">
-          No pending listings.
+          {regionFilter === "all"
+            ? "No pending listings."
+            : `No pending listings in ${regionLabel(regionFilter)}.`}
         </p>
       ) : (
-        listings.map((listing) => {
+        visibleListings.map((listing) => {
           const busy = savingId === listing.id;
           const confirming = confirmRejectId === listing.id;
 

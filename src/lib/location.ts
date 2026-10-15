@@ -1,7 +1,18 @@
 export const STREET_ADDRESS_MAX = 200;
 export const ZIP_CODE_PATTERN = /^\d{5}(-\d{4})?$/;
+import type { Region } from "@/lib/region";
+
 export const ZIP_CODE_HINT =
   "Enter a 5-digit ZIP code or ZIP+4, like 23510 or 23510-1234.";
+
+export function zipExampleForRegion(region: Region) {
+  return region === "rva" ? "23220" : "23510";
+}
+
+export function zipHintForRegion(region: Region) {
+  const zip = zipExampleForRegion(region);
+  return `Enter a 5-digit ZIP code or ZIP+4, like ${zip} or ${zip}-1234.`;
+}
 
 export function isZipCode(value: string) {
   return ZIP_CODE_PATTERN.test(value);

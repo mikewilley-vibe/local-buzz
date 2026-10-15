@@ -9,7 +9,9 @@ import {
   GENERIC_HAPPY_HOUR_REJECTION_REASON,
   isGenericRecurringPromotion,
 } from "@/lib/scout/value-filter";
+import { regionLabel, type RegionFilter } from "@/lib/region";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { cityMatchesRegionFilter } from "@/lib/types";
 
 type Evidence = {
   id: string;
@@ -64,8 +66,10 @@ function formatSchedule(candidate: ScoutCandidate) {
 }
 
 export function ScoutCandidatesPanel({
+  regionFilter,
   onCountChange,
 }: {
+  regionFilter: RegionFilter;
   onCountChange: (count: number) => void;
 }) {
   const [candidates, setCandidates] = useState<ScoutCandidate[]>([]);
@@ -124,9 +128,13 @@ export function ScoutCandidatesPanel({
     };
   }, []);
 
+  const visibleCandidates = candidates.filter((candidate) =>
+    cityMatchesRegionFilter(candidate.city, regionFilter),
+  );
+
   useEffect(() => {
-    onCountChange(candidates.length);
-  }, [candidates.length, onCountChange]);
+    onCountChange(visibleCandidates.length);
+  }, [visibleCandidates.length, onCountChange]);
 
   async function publish(candidate: ScoutCandidate) {
     setSavingId(candidate.id);
@@ -156,13 +164,14 @@ export function ScoutCandidatesPanel({
   }
 
   async function rejectGenericHappyHours() {
-    const generic = candidates.filter((candidate) =>
+    const generic = visibleCandidates.filter((candidate) =>
       isGenericRecurringPromotion(asScoutValue(candidate)),
     );
+    const scope = regionFilter === "all" ? "" : ` in ${regionLabel(regionFilter)}`;
     const confirmed = window.confirm(
       generic.length > 0
-        ? `Reject ${generic.length} generic happy-hour candidate${generic.length === 1 ? "" : "s"} and hide matching public listings? Records stay in the database.`
-        : "Hide matching generic happy-hour listings from the public app? Records stay in the database.",
+        ? `Reject ${generic.length} generic happy-hour candidate${generic.length === 1 ? "" : "s"}${scope} and hide matching public listings${scope}? Records stay in the database.`
+        : `Hide matching generic happy-hour listings${scope} from the public app? Records stay in the database.`,
     );
     if (!confirmed) return;
 
@@ -188,7 +197,7 @@ export function ScoutCandidatesPanel({
 
       const { data: listings, error: listingsError } = await supabase
         .from("listings")
-        .select("id, place_name, listing_type, days, description, start_time, status")
+        .select("id, place_name, city, listing_type, days, description, start_time, status")
         .eq("status", "approved");
       if (listingsError) {
         logDevOperationError("load listings for generic happy-hour cleanup", listingsError);
@@ -198,6 +207,7 @@ export function ScoutCandidatesPanel({
 
       let outdatedCount = 0;
       for (const listing of listings ?? []) {
+        if (!cityMatchesRegionFilter(listing.city, regionFilter)) continue;
         if (
           !isGenericRecurringPromotion({
             listingType: listing.listing_type,
@@ -222,8 +232,9 @@ export function ScoutCandidatesPanel({
         outdatedCount += 1;
       }
 
+      const rejectedIds = new Set(generic.map((candidate) => candidate.id));
       setCandidates((current) =>
-        current.filter((candidate) => !isGenericRecurringPromotion(asScoutValue(candidate))),
+        current.filter((candidate) => !rejectedIds.has(candidate.id)),
       );
       await revalidatePublicListings();
       setCleanupMessage(
@@ -301,12 +312,14 @@ export function ScoutCandidatesPanel({
         </button>
       </div>
 
-      {candidates.length === 0 ? (
+      {visibleCandidates.length === 0 ? (
         <p className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-6 text-sm text-[var(--muted)]">
-          No Scout candidates are waiting for review.
+          {regionFilter === "all"
+            ? "No Scout candidates are waiting for review."
+            : `No Scout candidates are waiting for review in ${regionLabel(regionFilter)}.`}
         </p>
       ) : (
-        groupScoutCandidatesByVenue(candidates).map((group) => (
+        groupScoutCandidatesByVenue(visibleCandidates).map((group) => (
           <article
             key={`${group.placeName}-${group.city}`}
             className="grid gap-4 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:p-5"

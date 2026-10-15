@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { DirectionsLink } from "@/components/DirectionsLink";
 import { FreshnessBadge } from "@/components/FreshnessBadge";
 import { PRODUCT_NAME } from "@/lib/brand";
+import { regionPlaceName } from "@/lib/region";
+import { getRequestRegion } from "@/lib/request-region";
 import { TYPE_LABELS } from "@/lib/types";
 import { getApprovedVenueBySlug, groupVenueListingsByDay } from "@/lib/venues";
 import { listingScheduleLabel } from "@/lib/week";
@@ -16,7 +18,8 @@ export async function generateMetadata({
   params,
 }: PageProps<"/venues/[slug]">): Promise<Metadata> {
   const { slug } = await params;
-  const venue = await getApprovedVenueBySlug(slug);
+  const region = await getRequestRegion();
+  const venue = await getApprovedVenueBySlug(slug, region);
 
   if (!venue) {
     return { title: `Venue not found — ${PRODUCT_NAME}` };
@@ -29,7 +32,7 @@ export async function generateMetadata({
 
   return {
     title: `${venue.name} — ${PRODUCT_NAME}`,
-    description: `${venue.name} in ${venue.location.city ?? "Hampton Roads"}. ${listingLabel} on the ${PRODUCT_NAME} calendar.`,
+    description: `${venue.name} in ${venue.location.city ?? regionPlaceName(region)}. ${listingLabel} on the ${PRODUCT_NAME} calendar.`,
   };
 }
 
@@ -37,7 +40,8 @@ export default async function VenuePage({
   params,
 }: PageProps<"/venues/[slug]">) {
   const { slug } = await params;
-  const venue = await getApprovedVenueBySlug(slug);
+  const region = await getRequestRegion();
+  const venue = await getApprovedVenueBySlug(slug, region);
 
   if (!venue || venue.listings.length === 0) {
     notFound();
@@ -51,7 +55,7 @@ export default async function VenuePage({
     <div className="mx-auto grid max-w-xl gap-8">
       <p>
         <Link
-          href="/venues"
+          href={`/venues?region=${region}`}
           className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--amber-deep)] outline-none ring-[var(--amber)] hover:underline focus-visible:ring-2"
         >
           Back to venues

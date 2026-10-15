@@ -9,7 +9,9 @@ import {
   parseListingFilters,
 } from "@/lib/filters";
 import { getListings } from "@/lib/listings";
-import { DAY_LABELS } from "@/lib/types";
+import { regionLabel, regionPlaceName } from "@/lib/region";
+import { getRequestRegion } from "@/lib/request-region";
+import { cityInRegion, DAY_LABELS } from "@/lib/types";
 import { easternTodayDay, getThisWeek } from "@/lib/week";
 import Link from "next/link";
 
@@ -20,11 +22,18 @@ export const fetchCache = "force-no-store";
 export default async function Home({ searchParams }: PageProps<"/">) {
   const params = await searchParams;
   const submitted = hasSubmittedConfirmation(params);
-  const filters = parseListingFilters(params);
+  const region = await getRequestRegion();
+  const parsed = parseListingFilters(params);
+  const filters = {
+    ...parsed,
+    region,
+    cities: parsed.cities.filter((city) => cityInRegion(city, region)),
+  };
   const listings = await getListings({
     cities: filters.cities,
     type: filters.type,
     zip: filters.zip,
+    region,
   });
   const week = getThisWeek();
   const selectedDay = filters.day;
@@ -35,7 +44,12 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     ? listings.filter((listing) => listing.days.includes(selectedDay))
     : listings;
   const count = visibleListings.length;
-  const areaLabel = formatSelectedArea(filters.cities);
+  const areaLabel = formatSelectedArea(filters.cities, region);
+  const regionIsEmpty =
+    listings.length === 0 &&
+    filters.cities.length === 0 &&
+    !filters.type &&
+    !filters.zip;
   const listingCountLabel = selectedDay
     ? count === 1
       ? `1 listing for ${DAY_LABELS[selectedDay]}`
@@ -48,15 +62,15 @@ export default async function Home({ searchParams }: PageProps<"/">) {
     <div className="grid gap-8">
       <div className="max-w-2xl">
         <p className="text-sm font-medium uppercase tracking-[0.16em] text-[var(--amber-deep)]">
-          {PRODUCT_NAME} · Hampton Roads
+          {PRODUCT_NAME} · {regionLabel(region)}
         </p>
         <h1 className="mt-2 font-display text-4xl leading-tight text-[var(--ink)] sm:text-5xl">
           What’s going on this week?
         </h1>
         <p className="mt-3 max-w-xl text-[var(--muted)]">
-          Happy hours, food specials, trivia, bingo, and live music around
-          Norfolk, Virginia Beach, and the rest of Hampton Roads. Community
-          submissions are reviewed before they appear on this calendar.
+          {region === "rva"
+            ? "Happy hours, food specials, trivia, bingo, and live music in Richmond. Community submissions are reviewed before they appear on this calendar."
+            : "Happy hours, food specials, trivia, bingo, and live music around Norfolk, Virginia Beach, and the rest of Hampton Roads. Community submissions are reviewed before they appear on this calendar."}
         </p>
       </div>
 
@@ -94,13 +108,17 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           role="status"
         >
           <p className="font-display text-xl text-[var(--ink)]">
-            No listings match the active filters.
+            {regionIsEmpty && region === "rva"
+              ? "No Richmond listings yet."
+              : "No listings match the active filters."}
           </p>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Know a special or event that belongs here?
+            {regionIsEmpty && region === "rva"
+              ? `Happy hours, trivia, and events in ${regionPlaceName(region)} will show up here after they are approved.`
+              : "Know a special or event that belongs here?"}
           </p>
           <Link
-            href="/add"
+            href={`/add?region=${region}`}
             className="mt-4 inline-flex min-h-11 items-center rounded-full bg-[var(--amber)] px-4 py-2 text-sm font-medium text-[var(--ink)] hover:bg-[var(--amber-hover)]"
           >
             Add a listing

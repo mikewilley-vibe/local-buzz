@@ -25,6 +25,7 @@ export function CalendarToolbar({
     type: filters.type,
     zip: filters.zip,
     view: filters.view,
+    region: filters.region,
   };
 
   function dayHref(day?: DayOfWeek) {

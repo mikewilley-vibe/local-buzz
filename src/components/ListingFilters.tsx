@@ -9,10 +9,11 @@ import {
   parseZipInput,
   type ParsedListingFilters,
 } from "@/lib/filters";
+import { zipExampleForRegion } from "@/lib/location";
 import {
-  CITIES,
   LISTING_TYPES,
   TYPE_LABELS,
+  citiesForRegion,
   parseCityValues,
   type City,
 } from "@/lib/types";
@@ -45,9 +46,11 @@ export function ListingFiltersBar({
       filters.day,
   );
   const clearHref = listingsHref(
-    { view: filters.view },
+    { view: filters.view, region: filters.region },
     { submitted },
   );
+  const zipExample = zipExampleForRegion(filters.region);
+  const regionCities = citiesForRegion(filters.region);
 
   function filtersFromForm(form: HTMLFormElement) {
     const data = new FormData(form);
@@ -77,6 +80,7 @@ export function ListingFiltersBar({
           zip: next.zip,
           day: filters.day,
           view: filters.view,
+          region: filters.region,
         },
         { submitted },
       ),
@@ -140,7 +144,7 @@ export function ListingFiltersBar({
 
   return (
     <form
-      key={`${filters.type ?? ""}:${filters.zip ?? ""}:${filters.zipInput}:${filters.day ?? ""}:${filters.view ?? ""}`}
+      key={`${filters.region}:${filters.type ?? ""}:${filters.zip ?? ""}:${filters.zipInput}:${filters.day ?? ""}:${filters.view ?? ""}`}
       action="/"
       method="get"
       className="flex flex-col gap-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-3 sm:flex-row sm:flex-wrap sm:items-start"
@@ -159,6 +163,7 @@ export function ListingFiltersBar({
       {filters.view ? (
         <input type="hidden" name="view" value={filters.view} />
       ) : null}
+      <input type="hidden" name="region" value={filters.region} />
 
       <div className="grid min-w-[14rem] flex-1 gap-1.5">
         <span className="text-sm font-medium text-[var(--ink)]" id={`${cityPanelId}-label`}>
@@ -172,6 +177,7 @@ export function ListingFiltersBar({
                 zip: filters.zip,
                 day: filters.day,
                 view: filters.view,
+                region: filters.region,
               },
               { submitted },
             )}
@@ -187,6 +193,7 @@ export function ListingFiltersBar({
                 zip: filters.zip,
                 day: filters.day,
                 view: filters.view,
+                region: filters.region,
               },
               { submitted },
             )}
@@ -207,7 +214,7 @@ export function ListingFiltersBar({
           >
             <span>
               <span className="sr-only">Cities, </span>
-              {cityFilterSummary(selectedCities)}
+              {cityFilterSummary(selectedCities, filters.region)}
             </span>
             <span className="text-sm text-[var(--muted)] group-open:hidden" aria-hidden="true">
               Show
@@ -223,7 +230,7 @@ export function ListingFiltersBar({
             className="grid gap-2 border-t border-[var(--line)] p-3"
           >
             <ul key={selectedCities.join("|")} className="grid gap-1">
-              {CITIES.map((city) => (
+              {regionCities.map((city) => (
                 <li key={city}>
                   <label className="flex min-h-11 cursor-pointer items-center gap-3 rounded-xl px-2 outline-none hover:bg-[var(--wash)] has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-[var(--amber)]">
                     <input
@@ -274,7 +281,7 @@ export function ListingFiltersBar({
           spellCheck={false}
           aria-invalid={zipError ? true : undefined}
           aria-describedby={describedBy}
-          placeholder="23510"
+          placeholder={zipExample}
           onBlur={(event) => {
             const form = event.currentTarget.form;
             if (form) applyZipFromForm(form);

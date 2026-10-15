@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { revalidatePublicListings } from "@/app/actions";
 import { ListingFormFields } from "@/components/ListingFormFields";
 import { listingFormToUpdate, parseListingFormData } from "@/lib/listing-form";
+import type { Region } from "@/lib/region";
+import { citiesForRegion } from "@/lib/types";
 import { logDevOperationError } from "@/lib/dev-log";
 import { ensureAnonymousUser } from "@/lib/supabase/client";
 
 const GENERIC_ERROR = "Could not submit listing.";
 
-export function AddListingForm() {
+export function AddListingForm({ region }: { region: Region }) {
   const router = useRouter();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -19,7 +21,9 @@ export function AddListingForm() {
     event.preventDefault();
     setErrorMessage(null);
 
-    const parsed = parseListingFormData(new FormData(event.currentTarget));
+    const parsed = parseListingFormData(new FormData(event.currentTarget), {
+      cities: citiesForRegion(region),
+    });
     if ("error" in parsed) {
       setErrorMessage(parsed.error);
       return;
@@ -64,7 +68,12 @@ export function AddListingForm() {
         </p>
       ) : null}
 
-      <ListingFormFields idPrefix="add-listing" disabled={pending} />
+      <ListingFormFields
+        idPrefix="add-listing"
+        disabled={pending}
+        region={region}
+        cities={citiesForRegion(region)}
+      />
 
       <button
         type="submit"
