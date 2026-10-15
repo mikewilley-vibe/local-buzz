@@ -99,6 +99,7 @@ export type Database = {
           listing_type: string
           place_name: string
           published_listing_id: string | null
+          region: string
           rejection_reason: string | null
           reviewed_at: string | null
           reviewed_by: string | null
@@ -124,6 +125,7 @@ export type Database = {
           listing_type: string
           place_name: string
           published_listing_id?: string | null
+          region?: string
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -149,6 +151,7 @@ export type Database = {
           listing_type?: string
           place_name?: string
           published_listing_id?: string | null
+          region?: string
           rejection_reason?: string | null
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -278,6 +281,7 @@ export type Database = {
           last_verified_at: string | null
           listing_type: string
           place_name: string
+          region: string
           source_checked_at: string | null
           source_url: string | null
           start_time: string | null
@@ -300,6 +304,7 @@ export type Database = {
           last_verified_at?: string | null
           listing_type: string
           place_name: string
+          region?: string
           source_checked_at?: string | null
           source_url?: string | null
           start_time?: string | null
@@ -322,6 +327,7 @@ export type Database = {
           last_verified_at?: string | null
           listing_type?: string
           place_name?: string
+          region?: string
           source_checked_at?: string | null
           source_url?: string | null
           start_time?: string | null
@@ -388,7 +394,7 @@ export type Database = {
     }
     Functions: {
       get_public_listings: {
-        Args: { p_listing_id?: string }
+        Args: { p_listing_id?: string; p_region?: string }
         Returns: {
           city: string
           confirmation_count: number
@@ -399,6 +405,7 @@ export type Database = {
           last_verified_at: string
           listing_type: string
           place_name: string
+          region: string
           source_url: string
           start_time: string
           street_address: string
