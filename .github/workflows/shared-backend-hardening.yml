@@ -67,6 +67,19 @@ jobs:
           fi
           echo "All Scout foundation checks passed."
 
+      - name: Run region checks
+        run: |
+          set -o pipefail
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 \
+            -f supabase/tests/region.sql 2>&1 | tee region-checks-output.txt
+
+          if grep -q 'FAIL' region-checks-output.txt; then
+            echo "::error::One or more region checks reported FAIL."
+            exit 1
+          fi
+          echo "All region checks passed."
+
       # Informational: prove the committed types match a fresh local generation.
       # The new RPCs (get_public_listings, import_staff_listings, is_approved_listing)
       # must be regenerated from the rebuilt local DB and committed on this branch.
