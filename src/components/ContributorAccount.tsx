@@ -571,7 +571,7 @@ export function ContributorAccount() {
       {gate === "none" ? (
         <div className="grid gap-5">
           <p className="text-[var(--muted)]">
-            Submit useful Hampton Roads listings and earn points when they are
+            Submit useful 757 or RVA listings and earn points when they are
             approved and when neighbors confirm they are still accurate.
           </p>
           <button

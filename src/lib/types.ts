@@ -1,4 +1,6 @@
-export const CITIES = [
+import type { Region, RegionFilter } from "@/lib/region";
+
+export const HAMPTON_ROADS_CITIES = [
   "Norfolk",
   "Virginia Beach",
   "Chesapeake",
@@ -9,7 +11,23 @@ export const CITIES = [
   "Williamsburg",
 ] as const;
 
+export const RICHMOND_CITIES = ["Richmond"] as const;
+
+export const CITIES = [...HAMPTON_ROADS_CITIES, ...RICHMOND_CITIES] as const;
+
 export type City = (typeof CITIES)[number];
+
+export function citiesForRegion(region: Region): readonly City[] {
+  return region === "rva" ? RICHMOND_CITIES : HAMPTON_ROADS_CITIES;
+}
+
+export function cityInRegion(city: string, region: Region) {
+  return (citiesForRegion(region) as readonly string[]).includes(city);
+}
+
+export function cityMatchesRegionFilter(city: string, filter: RegionFilter) {
+  return filter === "all" || cityInRegion(city, filter);
+}
 
 export const LISTING_TYPES = [
   "happy-hour",
@@ -38,6 +56,7 @@ export type Listing = {
   id: string;
   placeName: string;
   city: City | null;
+  region: Region | null;
   type: ListingType;
   days: DayOfWeek[];
   startTime: string;

@@ -1,4 +1,5 @@
 import { logDevOperationError } from "@/lib/dev-log";
+import type { Region } from "@/lib/region";
 import { getListings } from "@/lib/listings";
 import { formatFullLocation, type ListingLocation } from "@/lib/location";
 import { sha256Hex } from "@/lib/sha256";
@@ -221,12 +222,12 @@ export function buildVenuePage(
   };
 }
 
-export async function getApprovedVenueDirectory() {
-  const listings = await getListings();
+export async function getApprovedVenueDirectory(region?: Region) {
+  const listings = await getListings(region ? { region } : {});
   return buildVenueDirectory(listings);
 }
 
-export async function getApprovedVenueBySlug(slug: string) {
-  const listings = await getListings();
+export async function getApprovedVenueBySlug(slug: string, region?: Region) {
+  const listings = await getListings(region ? { region } : {});
   return buildVenuePage(listings, slug);
 }

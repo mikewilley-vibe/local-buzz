@@ -1,6 +1,9 @@
 import { AddListingForm } from "@/components/AddListingForm";
+import { regionPlaceName } from "@/lib/region";
+import { getRequestRegion } from "@/lib/request-region";
 
-export default function AddPage() {
+export default async function AddPage() {
+  const region = await getRequestRegion();
   return (
     <div className="mx-auto grid max-w-xl gap-6">
       <div>
@@ -11,11 +14,12 @@ export default function AddPage() {
           Add a listing
         </h1>
         <p className="mt-3 text-[var(--muted)]">
-          Know a happy hour, taco night, trivia, or band? Submit it here.
-          Community listings are reviewed before they appear on the calendar.
+          Know a happy hour, taco night, trivia, or band in{" "}
+          {regionPlaceName(region)}? Submit it here. Community listings are
+          reviewed before they appear on the calendar.
         </p>
       </div>
-      <AddListingForm />
+      <AddListingForm region={region} />
     </div>
   );
 }

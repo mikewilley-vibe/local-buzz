@@ -26,8 +26,9 @@ export default function PrivacyPage() {
 
       <div className="grid gap-8 text-base leading-relaxed text-[var(--ink)]">
         <p>
-          {PRODUCT_NAME} is a Hampton Roads guide to happy hours, food
-          specials, trivia, and events, on the website and in the mobile app.
+          {PRODUCT_NAME} is a guide to happy hours, food specials, trivia,
+          and events in Hampton Roads and Richmond, on the website and in the
+          mobile app.
           This policy explains what we collect, how we use it, and how to ask
           us to delete it.
         </p>

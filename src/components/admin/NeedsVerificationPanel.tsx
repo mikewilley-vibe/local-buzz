@@ -11,7 +11,9 @@ import {
   needsVerification,
 } from "@/lib/freshness";
 import { seedFromListingRow } from "@/lib/listing-form";
+import { regionLabel, type RegionFilter } from "@/lib/region";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { cityMatchesRegionFilter } from "@/lib/types";
 import { confirmationCountLabel, formatVerifiedDate } from "@/lib/week";
 import { DirectionsLink } from "@/components/DirectionsLink";
 import {
@@ -52,8 +54,10 @@ function mapRow(row: ListingRow): VerificationListing | null {
 }
 
 export function NeedsVerificationPanel({
+  regionFilter,
   onCountChange,
 }: {
+  regionFilter: RegionFilter;
   onCountChange: (count: number) => void;
 }) {
   const [listings, setListings] = useState<VerificationListing[]>([]);
@@ -112,9 +116,13 @@ export function NeedsVerificationPanel({
     };
   }, []);
 
+  const visibleListings = listings.filter((listing) =>
+    cityMatchesRegionFilter(listing.values.city, regionFilter),
+  );
+
   useEffect(() => {
-    onCountChange(listings.length);
-  }, [listings.length, onCountChange]);
+    onCountChange(visibleListings.length);
+  }, [visibleListings.length, onCountChange]);
 
   function onSaved(row: SavedListingRow) {
     setListings((current) =>
@@ -159,12 +167,14 @@ export function NeedsVerificationPanel({
         </p>
       ) : null}
 
-      {listings.length === 0 ? (
+      {visibleListings.length === 0 ? (
         <p className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-6 text-sm text-[var(--muted)]">
-          No listings need verification.
+          {regionFilter === "all"
+            ? "No listings need verification."
+            : `No listings need verification in ${regionLabel(regionFilter)}.`}
         </p>
       ) : (
-        listings.map((listing) => {
+        visibleListings.map((listing) => {
           const verifiedLabel = listing.lastVerifiedAt
             ? formatVerifiedDate(listing.lastVerifiedAt)
             : null;

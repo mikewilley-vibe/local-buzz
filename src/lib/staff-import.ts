@@ -406,7 +406,7 @@ export function buildStaffImportPreview(
     const errors: string[] = [];
     if (!placeName) errors.push("Venue (place name) is required.");
     if (!description) errors.push("Description is required.");
-    if (!city) errors.push("City must be a supported Hampton Roads city.");
+    if (!city) errors.push("City must be a supported city.");
     if (!isZipCode(zipCode)) errors.push("ZIP code must be 5 digits or ZIP+4.");
     if (days.length === 0) errors.push("At least one valid day of the week is required.");
     if (!mapped.mappedType) {

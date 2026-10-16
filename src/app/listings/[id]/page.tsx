@@ -58,7 +58,7 @@ export default async function ListingDetailPage({
     <article className="mx-auto grid max-w-xl gap-6">
       <p>
         <Link
-          href="/"
+          href={listing.region ? `/?region=${listing.region}` : "/"}
           className="inline-flex min-h-11 items-center text-sm font-medium text-[var(--amber-deep)] hover:underline"
         >
           Back to this week
@@ -76,7 +76,7 @@ export default async function ListingDetailPage({
           <p className="mt-2 text-[var(--muted)]">{locationLabel}</p>
         ) : (
           <p className="mt-2 text-[var(--muted)]">
-            {listing.city ?? "Hampton Roads"}
+            {listing.city ?? (listing.region === "rva" ? "Richmond" : "Hampton Roads")}
           </p>
         )}
         <div className="mt-3">

@@ -1,5 +1,7 @@
 import { isZipCode, ZIP_CODE_HINT } from "@/lib/location";
+import { isRegion, type Region } from "@/lib/region";
 import {
+  cityInRegion,
   isCity,
   isDay,
   isListingType,
@@ -26,6 +28,7 @@ export type ParsedListingFilters = CalendarQuery & {
   cities: City[];
   zipInput: string;
   zipError: string | null;
+  region: Region;
 };
 
 export function isCalendarView(value: string): value is CalendarView {
@@ -67,6 +70,7 @@ export function parseListingFilters(searchParams: {
     zipError: zipState.zipError,
     day: isDay(dayValue) ? dayValue : undefined,
     view: isCalendarView(viewValue) ? viewValue : undefined,
+    region: "757",
   };
 }
 
@@ -76,14 +80,18 @@ export function hasSubmittedConfirmation(searchParams: {
   return firstString(searchParams.submitted) === "1";
 }
 
-export function cityFilterSummary(cities: City[]) {
-  if (cities.length === 0) return "All cities";
+export function cityFilterSummary(cities: City[], region: Region = "757") {
+  if (cities.length === 0) {
+    return region === "rva" ? "All RVA cities" : "All 757 cities";
+  }
   if (cities.length === 1) return cities[0];
   return `${cities[0]} +${cities.length - 1}`;
 }
 
-export function formatSelectedArea(cities: City[]) {
-  if (cities.length === 0) return "All Hampton Roads";
+export function formatSelectedArea(cities: City[], region: Region = "757") {
+  if (cities.length === 0) {
+    return region === "rva" ? "All RVA cities" : "All 757 cities";
+  }
   if (cities.length === 1) return cities[0];
   if (cities.length === 2) return `${cities[0]} and ${cities[1]}`;
   const head = cities.slice(0, -1).join(", ");
@@ -98,12 +106,13 @@ export function listingsHref(
     zip?: string;
     day?: string;
     view?: string;
+    region?: Region;
   },
   options: { submitted?: boolean } = {},
 ) {
   const params = new URLSearchParams();
-  const cities = parseCityValues(
-    filters.cities ?? filters.city,
+  const cities = parseCityValues(filters.cities ?? filters.city).filter(
+    (city) => !filters.region || cityInRegion(city, filters.region),
   );
 
   for (const city of cities) {
@@ -114,6 +123,7 @@ export function listingsHref(
   if (zip && isZipCode(zip)) params.set("zip", zip);
   if (filters.day && isDay(filters.day)) params.set("day", filters.day);
   if (filters.view && isCalendarView(filters.view)) params.set("view", filters.view);
+  if (isRegion(filters.region)) params.set("region", filters.region);
   if (options.submitted) params.set("submitted", "1");
 
   const query = params.toString();
