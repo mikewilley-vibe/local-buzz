@@ -2,7 +2,7 @@
 -- Existing rows are Hampton Roads and are backfilled to 757.
 -- A before-write trigger stamps region from city, so clients cannot choose it
 -- and region stays off the community INSERT column grant.
--- Apply to local-buzz-dev only. Do not apply to production.
+-- Approved for production local-buzz (vghnfdukyosvvoqrxmok) and local-buzz-dev.
 
 alter table public.listings drop constraint listings_city_check;
 alter table public.listings add constraint listings_city_check check (city = any (array[
